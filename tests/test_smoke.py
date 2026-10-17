@@ -57,7 +57,9 @@ def test_outer_pipeline_smoke():
     assert len(result.vertices) == len(template.vertices)
     assert len(result.faces) == len(template.faces)
     assert np.isfinite(np.asarray(result.vertices)).all()
-    assert report["pipeline"] == "AUTO_YANGGUAN_HYBRID_MVP_1"
+    assert report["pipeline"] == "AUTO_YANGGUAN_HYBRID_MVP_2"
+    assert report["frame_contract"] == "X_RIGHT_HANDED_ARCH_TANGENT_Y_BUCCAL_Z_INSERTION"
+    assert report["mesial_sign_on_frame_x"] == 1.0
     assert report["status"] in {"OUTER_CANDIDATE_READY", "OUTER_REVIEW_REQUIRED"}
     names = [stage["name"] for stage in report["stages"]]
     assert names == ["PLACEMENT", "MESIAL", "DISTAL", "OCCLUSAL"]
