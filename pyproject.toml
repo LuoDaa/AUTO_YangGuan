@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "auto-yangguan"
-version = "0.1.0"
+version = "0.2.0"
 description = "Conservative template-driven dental crown CAD MVP"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -12,6 +12,9 @@ dependencies = [
   "numpy>=1.26",
   "scipy>=1.11",
   "trimesh>=4.0",
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.32",
+  "python-multipart>=0.0.12",
 ]
 
 [project.optional-dependencies]
@@ -19,6 +22,7 @@ dev = ["pytest>=8.0"]
 
 [project.scripts]
 autocrown = "autocrown.cli:main"
+autocrown-web = "autocrown.web:run"
 
 [tool.setuptools.packages.find]
 where = ["src"]
