@@ -17,15 +17,18 @@ def _finite_span(values: np.ndarray, lo: float = 0.02, hi: float = 0.98) -> floa
 
 def place_template(template: trimesh.Trimesh, margin: np.ndarray, frame: PatientFrame,
                    config: PlacementConfig | None = None):
-    """Place a canonically oriented crown template into the confirmed patient frame.
+    """Place a canonically oriented crown template into the patient frame.
 
-    Contract for the MVP template library:
-      * +X = mesial, +Y = buccal, +Z = occlusal,
-      * crown-only (no root),
-      * cervical portion lies near the minimum Z of the mesh.
+    Canonical contract used by AUTO_YangGuan V2:
+      * +X = right-handed dental-arch tangent,
+      * +Y = buccal / arch-outward,
+      * +Z = occlusal / insertion direction,
+      * crown-only (no root), cervical portion near minimum Z.
 
-    Scaling is intentionally mild. The Margin only suggests cervical X/Y size;
-    it never forces the whole tooth to fill the patient space.
+    Anatomical mesial is intentionally *not* hard-coded as +X because its sign
+    depends on quadrant. The FDI mesial sign is consumed only by proximal-contact
+    logic; placement therefore never flips the buccal direction just to rename a
+    side. Scaling is mild and Margin only suggests cervical X/Y size.
     """
     cfg = config or PlacementConfig()
     out = template.copy()
@@ -60,8 +63,8 @@ def place_template(template: trimesh.Trimesh, margin: np.ndarray, frame: Patient
     out.vertices = frame.to_world(local)
 
     report = {
-        "method": "CANONICAL_TEMPLATE_MILD_SCALE_V1",
-        "template_contract": "CROWN_ONLY_X_MESIAL_Y_BUCCAL_Z_OCCLUSAL",
+        "method": "CANONICAL_TEMPLATE_MILD_SCALE_V2",
+        "template_contract": "CROWN_ONLY_X_ARCH_TANGENT_Y_BUCCAL_Z_OCCLUSAL",
         "raw_scale": {"x": sx_raw, "y": sy_raw, "z": 1.0},
         "applied_scale": {"x": sx, "y": sy, "z": 1.0},
         "scale_clamped": bool(abs(sx - sx_raw) > 1e-8 or abs(sy - sy_raw) > 1e-8),
