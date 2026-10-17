@@ -1,0 +1,589 @@
+{
+  "基台测试1-46": {
+    "case": "基台测试1-46",
+    "classification": "implant_locator_candidate_not_confirmed_restorative_abutment",
+    "piece_faces": 16000,
+    "component_faces": [
+      53375,
+      16000,
+      13,
+      4
+    ],
+    "piece_to_jaw_min_mm": 0.0086,
+    "piece_to_jaw_p50_mm": 0.553,
+    "piece_to_jaw_sample_vertices": 240,
+    "axis_unit_direction": [
+      -0.1217,
+      0.98709,
+      -0.10416
+    ],
+    "axis_angle_to_opposing_jaw_deg": 16.03,
+    "axis_end_proximity_mm": {
+      "base_median": 0.11,
+      "opposite_median": 3.926
+    },
+    "bottom_center_model_frame": [
+      14.836,
+      -11.466,
+      -13.263
+    ],
+    "top_center_model_frame": [
+      13.26,
+      -1.553,
+      -13.729
+    ],
+    "centroid_model_frame": [
+      13.913,
+      -6.122,
+      -13.023
+    ],
+    "radius_mm": 2.178,
+    "radius_std_mm": 0.293,
+    "cylinder_wall_point_ratio": 0.511,
+    "full_axis_extent_mm": 10.67,
+    "area_1_99_axis_span_mm": 10.49,
+    "physical_body_length_mm": null,
+    "rotational_symmetry_chamfer_mm": {
+      "piece_mean": 0.193,
+      "same_jaw_patch_mean": 0.803,
+      "same_jaw_patch_faces": 724,
+      "same_jaw_patch_is_verified_natural_tooth": false
+    },
+    "rigid_reference_matches": [
+      {
+        "name": "Segma 24 SC-B-1 SIC42 4.5.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 0.2706,
+        "forward_p90_mm": 0.6742,
+        "reverse_p50_mm": 0.3384,
+        "reverse_p90_mm": 0.6013,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": null,
+        "radius_profile_valid_bins": 2
+      },
+      {
+        "name": "Segma 24 AN-show SIC 42.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 0.4022,
+        "forward_p90_mm": 0.7404,
+        "reverse_p50_mm": 0.3672,
+        "reverse_p90_mm": 1.7545,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": null,
+        "radius_profile_valid_bins": 0
+      },
+      {
+        "name": "RE-1 SIC 4.5.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 0.4691,
+        "forward_p90_mm": 1.2595,
+        "reverse_p50_mm": 0.4054,
+        "reverse_p90_mm": 5.5344,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": null,
+        "radius_profile_valid_bins": 2
+      },
+      {
+        "name": "ScanAbutment_UNN19.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 0.4256,
+        "forward_p90_mm": 1.2009,
+        "reverse_p50_mm": 0.4606,
+        "reverse_p90_mm": 1.1439,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": 0.4368,
+        "radius_profile_valid_bins": 8
+      },
+      {
+        "name": "1629-王煜 0.stl",
+        "kind": "labeled_final_abutment_design_control",
+        "forward_p50_mm": 0.4256,
+        "forward_p90_mm": 1.2009,
+        "reverse_p50_mm": 0.4606,
+        "reverse_p90_mm": 1.1439,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": 0.4368,
+        "radius_profile_valid_bins": 8
+      },
+      {
+        "name": "UNN19.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 0.5179,
+        "forward_p90_mm": 1.3811,
+        "reverse_p50_mm": 0.4136,
+        "reverse_p90_mm": 1.1431,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": 0.4417,
+        "radius_profile_valid_bins": 7
+      },
+      {
+        "name": "UNN19.stl",
+        "kind": "crown_or_anatomy_negative",
+        "forward_p50_mm": 0.3971,
+        "forward_p90_mm": 1.3415,
+        "reverse_p50_mm": 0.6097,
+        "reverse_p90_mm": 3.1346,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": 0.5892,
+        "radius_profile_valid_bins": 8
+      },
+      {
+        "name": "1629-王煜 1.stl",
+        "kind": "crown_or_anatomy_negative",
+        "forward_p50_mm": 0.3336,
+        "forward_p90_mm": 0.744,
+        "reverse_p50_mm": 0.7001,
+        "reverse_p90_mm": 3.5963,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": 0.5365,
+        "radius_profile_valid_bins": 8
+      },
+      {
+        "name": "TopCap Unn19.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 0.8039,
+        "forward_p90_mm": 1.5003,
+        "reverse_p50_mm": 0.6573,
+        "reverse_p90_mm": 1.1223,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": 0.5251,
+        "radius_profile_valid_bins": 6
+      },
+      {
+        "name": "Segma 24 PM SIC 42.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 1.2126,
+        "forward_p90_mm": 2.4975,
+        "reverse_p50_mm": 0.4071,
+        "reverse_p90_mm": 0.9468,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": null,
+        "radius_profile_valid_bins": 3
+      },
+      {
+        "name": "Segma 24 SC-show SIC.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 1.3094,
+        "forward_p90_mm": 1.7205,
+        "reverse_p50_mm": 0.8805,
+        "reverse_p90_mm": 1.4496,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": null,
+        "radius_profile_valid_bins": 0
+      },
+      {
+        "name": "Segma 24 PM-show SIC.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 0.4272,
+        "forward_p90_mm": 1.009,
+        "reverse_p50_mm": 1.8496,
+        "reverse_p90_mm": 6.6003,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": 2.4973,
+        "radius_profile_valid_bins": 8
+      }
+    ]
+  },
+  "基台测试2-36": {
+    "case": "基台测试2-36",
+    "classification": "implant_locator_candidate_not_confirmed_restorative_abutment",
+    "piece_faces": 16000,
+    "component_faces": [
+      50491,
+      16000
+    ],
+    "piece_to_jaw_min_mm": 0.0006,
+    "piece_to_jaw_p50_mm": 0.3616,
+    "piece_to_jaw_sample_vertices": 240,
+    "axis_unit_direction": [
+      0.0564,
+      0.96974,
+      -0.23755
+    ],
+    "axis_angle_to_opposing_jaw_deg": 18.51,
+    "axis_end_proximity_mm": {
+      "base_median": 0.623,
+      "opposite_median": 2.577
+    },
+    "bottom_center_model_frame": [
+      -12.434,
+      -18.575,
+      -4.649
+    ],
+    "top_center_model_frame": [
+      -12.827,
+      -10.076,
+      -5.612
+    ],
+    "centroid_model_frame": [
+      -12.5,
+      -13.727,
+      -4.622
+    ],
+    "radius_mm": 2.548,
+    "radius_std_mm": 0.354,
+    "cylinder_wall_point_ratio": 0.423,
+    "full_axis_extent_mm": 9.15,
+    "area_1_99_axis_span_mm": 8.91,
+    "physical_body_length_mm": null,
+    "rotational_symmetry_chamfer_mm": {
+      "piece_mean": 0.276,
+      "same_jaw_patch_mean": 0.38,
+      "same_jaw_patch_faces": 746,
+      "same_jaw_patch_is_verified_natural_tooth": false
+    },
+    "rigid_reference_matches": [
+      {
+        "name": "ScanAbutment_UNN19.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 0.2422,
+        "forward_p90_mm": 0.633,
+        "reverse_p50_mm": 0.3181,
+        "reverse_p90_mm": 0.8726,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": 0.2154,
+        "radius_profile_valid_bins": 8
+      },
+      {
+        "name": "1629-王煜 0.stl",
+        "kind": "labeled_final_abutment_design_control",
+        "forward_p50_mm": 0.2422,
+        "forward_p90_mm": 0.633,
+        "reverse_p50_mm": 0.3181,
+        "reverse_p90_mm": 0.8726,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": 0.2154,
+        "radius_profile_valid_bins": 8
+      },
+      {
+        "name": "UNN19.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 0.3486,
+        "forward_p90_mm": 1.2744,
+        "reverse_p50_mm": 0.2548,
+        "reverse_p90_mm": 0.7567,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": 0.3671,
+        "radius_profile_valid_bins": 8
+      },
+      {
+        "name": "Segma 24 SC-B-1 SIC42 4.5.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 0.6479,
+        "forward_p90_mm": 1.4326,
+        "reverse_p50_mm": 0.1709,
+        "reverse_p90_mm": 0.5045,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": null,
+        "radius_profile_valid_bins": 5
+      },
+      {
+        "name": "RE-1 SIC 4.5.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 0.7744,
+        "forward_p90_mm": 1.5556,
+        "reverse_p50_mm": 0.249,
+        "reverse_p90_mm": 6.4271,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": 0.3852,
+        "radius_profile_valid_bins": 6
+      },
+      {
+        "name": "UNN19.stl",
+        "kind": "crown_or_anatomy_negative",
+        "forward_p50_mm": 0.4715,
+        "forward_p90_mm": 1.774,
+        "reverse_p50_mm": 0.5685,
+        "reverse_p90_mm": 2.9305,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": 0.475,
+        "radius_profile_valid_bins": 9
+      },
+      {
+        "name": "Segma 24 AN-show SIC 42.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 0.5623,
+        "forward_p90_mm": 0.9318,
+        "reverse_p50_mm": 0.4991,
+        "reverse_p90_mm": 3.4386,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": 0.8656,
+        "radius_profile_valid_bins": 7
+      },
+      {
+        "name": "1629-王煜 1.stl",
+        "kind": "crown_or_anatomy_negative",
+        "forward_p50_mm": 0.3051,
+        "forward_p90_mm": 0.8513,
+        "reverse_p50_mm": 0.9833,
+        "reverse_p90_mm": 2.4336,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": 0.9925,
+        "radius_profile_valid_bins": 9
+      },
+      {
+        "name": "TopCap Unn19.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 0.8481,
+        "forward_p90_mm": 1.3321,
+        "reverse_p50_mm": 0.5861,
+        "reverse_p90_mm": 1.0151,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": 0.8899,
+        "radius_profile_valid_bins": 7
+      },
+      {
+        "name": "Segma 24 PM SIC 42.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 1.2794,
+        "forward_p90_mm": 1.9436,
+        "reverse_p50_mm": 0.7085,
+        "reverse_p90_mm": 1.0998,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": 0.7506,
+        "radius_profile_valid_bins": 6
+      },
+      {
+        "name": "Segma 24 SC-show SIC.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 1.4165,
+        "forward_p90_mm": 1.9151,
+        "reverse_p50_mm": 0.987,
+        "reverse_p90_mm": 1.6412,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": null,
+        "radius_profile_valid_bins": 0
+      },
+      {
+        "name": "Segma 24 PM-show SIC.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 0.3944,
+        "forward_p90_mm": 1.0462,
+        "reverse_p50_mm": 2.0128,
+        "reverse_p90_mm": 6.264,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": 2.3911,
+        "radius_profile_valid_bins": 9
+      }
+    ]
+  },
+  "基台测试3-46": {
+    "case": "基台测试3-46",
+    "classification": "implant_locator_candidate_not_confirmed_restorative_abutment",
+    "piece_faces": 17168,
+    "component_faces": [
+      46058,
+      17168
+    ],
+    "piece_to_jaw_min_mm": 0.0125,
+    "piece_to_jaw_p50_mm": 0.4009,
+    "piece_to_jaw_sample_vertices": 240,
+    "axis_unit_direction": [
+      0.16583,
+      0.97971,
+      -0.11252
+    ],
+    "axis_angle_to_opposing_jaw_deg": 44.95,
+    "axis_end_proximity_mm": {
+      "base_median": 0.133,
+      "opposite_median": 3.969
+    },
+    "bottom_center_model_frame": [
+      -18.874,
+      -20.174,
+      -1.425
+    ],
+    "top_center_model_frame": [
+      -16.78,
+      -9.258,
+      -3.283
+    ],
+    "centroid_model_frame": [
+      -17.732,
+      -13.964,
+      -2.418
+    ],
+    "radius_mm": 2.218,
+    "radius_std_mm": 0.454,
+    "cylinder_wall_point_ratio": 0.498,
+    "full_axis_extent_mm": 11.66,
+    "area_1_99_axis_span_mm": 11.57,
+    "physical_body_length_mm": null,
+    "rotational_symmetry_chamfer_mm": {
+      "piece_mean": 0.208,
+      "same_jaw_patch_mean": 0.525,
+      "same_jaw_patch_faces": 218,
+      "same_jaw_patch_is_verified_natural_tooth": false
+    },
+    "rigid_reference_matches": [
+      {
+        "name": "Segma 24 AN-show SIC 42.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 0.2411,
+        "forward_p90_mm": 0.6193,
+        "reverse_p50_mm": 0.3656,
+        "reverse_p90_mm": 1.2952,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": null,
+        "radius_profile_valid_bins": 0
+      },
+      {
+        "name": "Segma 24 SC-B-1 SIC42 4.5.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 0.3549,
+        "forward_p90_mm": 0.9807,
+        "reverse_p50_mm": 0.2918,
+        "reverse_p90_mm": 0.7674,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": null,
+        "radius_profile_valid_bins": 3
+      },
+      {
+        "name": "ScanAbutment_UNN19.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 0.3748,
+        "forward_p90_mm": 1.1809,
+        "reverse_p50_mm": 0.3928,
+        "reverse_p90_mm": 1.0524,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": 0.3216,
+        "radius_profile_valid_bins": 7
+      },
+      {
+        "name": "1629-王煜 0.stl",
+        "kind": "labeled_final_abutment_design_control",
+        "forward_p50_mm": 0.3748,
+        "forward_p90_mm": 1.1809,
+        "reverse_p50_mm": 0.3928,
+        "reverse_p90_mm": 1.0524,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": 0.3216,
+        "radius_profile_valid_bins": 7
+      },
+      {
+        "name": "RE-1 SIC 4.5.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 0.5479,
+        "forward_p90_mm": 1.3179,
+        "reverse_p50_mm": 0.3199,
+        "reverse_p90_mm": 2.2415,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": null,
+        "radius_profile_valid_bins": 1
+      },
+      {
+        "name": "UNN19.stl",
+        "kind": "crown_or_anatomy_negative",
+        "forward_p50_mm": 0.3605,
+        "forward_p90_mm": 1.159,
+        "reverse_p50_mm": 0.5322,
+        "reverse_p90_mm": 2.9401,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": 0.5276,
+        "radius_profile_valid_bins": 8
+      },
+      {
+        "name": "UNN19.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 0.5759,
+        "forward_p90_mm": 1.786,
+        "reverse_p50_mm": 0.3557,
+        "reverse_p90_mm": 1.0383,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": 0.4872,
+        "radius_profile_valid_bins": 6
+      },
+      {
+        "name": "1629-王煜 1.stl",
+        "kind": "crown_or_anatomy_negative",
+        "forward_p50_mm": 0.3559,
+        "forward_p90_mm": 0.7449,
+        "reverse_p50_mm": 0.9749,
+        "reverse_p90_mm": 2.3278,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": 1.1848,
+        "radius_profile_valid_bins": 7
+      },
+      {
+        "name": "TopCap Unn19.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 0.9371,
+        "forward_p90_mm": 1.9191,
+        "reverse_p50_mm": 0.5892,
+        "reverse_p90_mm": 0.9992,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": 0.6528,
+        "radius_profile_valid_bins": 6
+      },
+      {
+        "name": "Segma 24 PM SIC 42.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 1.439,
+        "forward_p90_mm": 2.7929,
+        "reverse_p50_mm": 0.5623,
+        "reverse_p90_mm": 1.1449,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": null,
+        "radius_profile_valid_bins": 4
+      },
+      {
+        "name": "Segma 24 PM-show SIC.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 0.3924,
+        "forward_p90_mm": 1.0319,
+        "reverse_p50_mm": 1.9378,
+        "reverse_p90_mm": 6.3311,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": 2.4806,
+        "radius_profile_valid_bins": 8
+      },
+      {
+        "name": "Segma 24 SC-show SIC.stl",
+        "kind": "implant_library_component",
+        "forward_p50_mm": 1.3244,
+        "forward_p90_mm": 1.7955,
+        "reverse_p50_mm": 1.0238,
+        "reverse_p90_mm": 1.4442,
+        "sample_vertices_each": 240,
+        "rigid_no_scale_no_reflection": true,
+        "radius_profile_median_delta_mm": null,
+        "radius_profile_valid_bins": 0
+      }
+    ]
+  }
+}
