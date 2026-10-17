@@ -64,7 +64,7 @@ function LocalizationSummary({ localization }) {
       <div><b>基台</b><span>{a.status || '—'} · confidence {a.confidence || '—'}</span></div>
       <div><b>Margin</b><span>{margin.point_count || localization.margin_points?.length || 0} 点 · 自动工程候选</span></div>
       <div><b>插入轴 Z</b><span>{axis.status || '—'} · confidence {axis.confidence != null ? Number(axis.confidence).toFixed(2) : '—'}</span></div>
-      <div><b>PatientFrame</b><span>det {frame.handedness != null ? Number(frame.handedness).toFixed(3) : '—'} · X近远中/Y颊侧/Z插入</span></div>
+      <div><b>PatientFrame</b><span>det {frame.handedness != null ? Number(frame.handedness).toFixed(3) : '—'} · X牙弓切向/Y颊侧/Z插入</span></div>
     </div>
     {axis.reasons?.length > 0 && <div className="notice">轴复核提示：{axis.reasons.join(' / ')}</div>}
   </>
@@ -80,8 +80,8 @@ function CasePage({ caseData, onLocalize, onGenerate, busy, message }) {
         <Viewer assets={caseData.assets} localization={caseData.localization} visible={visible} />
         <div className="strategy">
           <div><b style={{color:'#39d98a'}}>Margin</b><span>绿色闭环</span></div>
-          <div><b style={{color:'#ff6b6b'}}>X</b><span>近远中轴</span></div>
-          <div><b style={{color:'#4dabf7'}}>Y</b><span>颊侧轴</span></div>
+          <div><b style={{color:'#ff6b6b'}}>X</b><span>牙弓切向；近中侧按 FDI 映射</span></div>
+          <div><b style={{color:'#4dabf7'}}>Y</b><span>颊侧 / 牙弓外向</span></div>
           <div><b style={{color:'#e599f7'}}>Z</b><span>插入轴 / 咬合方向</span></div>
         </div>
         {caseData.localized && <div className="metrics">
@@ -95,7 +95,7 @@ function CasePage({ caseData, onLocalize, onGenerate, busy, message }) {
         <div className="template-card"><div className="tooth-icon">{caseData.fdi}</div><div><b>FDI_{caseData.fdi}.stl</b><small>只有定位通过后才会转成 canonical crown prior</small></div><span>已选择</span></div>
         <LocalizationSummary localization={caseData.localization} />
         <button className="secondary full" disabled={busy} onClick={onLocalize}>{busy ? '处理中…' : caseData.localized ? '重新定位并复核' : '1. 基台定位 / Margin / 插入轴'}</button>
-        <div className="notice">{message || (caseData.localized ? '请在左侧确认棕色基台、绿色 Margin 和紫色 Z 轴方向正确。' : '先执行定位。')}</div>
+        <div className="notice">{message || (caseData.localized ? '请在左侧确认棕色基台、绿色 Margin、紫色 Z 插入轴和蓝色 Y 颊侧方向正确。' : '先执行定位。')}</div>
         <button className="primary generate" disabled={busy || !caseData.localized} onClick={onGenerate}>{busy ? '正在生成牙冠…' : '2. 牙冠生成'}</button>
         {!caseData.localized && <small>未完成定位时禁止生成，避免再次出现模板牙方向错误。</small>}
       </section>
