@@ -8,8 +8,24 @@ from __future__ import annotations
 
 import numpy as np
 import trimesh
+from scipy.spatial import cKDTree
 
 ALGORITHM_VERSION = "crownflow/abutment-shoulder/1.1-port"
+
+
+def _surface_distance(mesh: trimesh.Trimesh, points: np.ndarray) -> tuple[np.ndarray, str]:
+    """Exact surface distance when available, deterministic vertex fallback otherwise."""
+    points = np.asarray(points, float)
+    try:
+        _, distance, _ = trimesh.proximity.closest_point(mesh, points)
+        return np.asarray(distance, float), "TRIMESH_CLOSEST_POINT"
+    except Exception:
+        vertices = np.asarray(mesh.vertices, float)
+        if len(vertices) == 0:
+            return np.full(len(points), np.inf), "EMPTY_MESH"
+        tree = cKDTree(vertices)
+        distance, _ = tree.query(points, k=1)
+        return np.asarray(distance, float), "VERTEX_KDTREE_FALLBACK"
 
 
 def _cyclic_path(candidates):
@@ -37,6 +53,9 @@ def _cyclic_path(candidates):
 def _prominence(rim, sections):
     values = []
     for peak, (segments, radial) in zip(rim, sections):
+        if len(segments) == 0:
+            values.append([np.nan, np.nan])
+            continue
         dz = segments[:, 1, 2] - segments[:, 0, 2]
         sides = []
         for height in (peak[2] - 0.75, peak[2] + 0.75):
@@ -189,15 +208,16 @@ def extract_abutment_margin(mesh, axis, origin=None, *, strict_qc=False):
         if strict_qc:
             raise ValueError("肩线存在不连续跳跃，请手动纠正")
 
-    _, distance, _ = trimesh.proximity.closest_point(mesh, world)
+    distance, point_distance_method = _surface_distance(mesh, world)
     samples = np.concatenate([world + t * (following - world) for t in (0.25, 0.5, 0.75)])
-    _, interior_distance, _ = trimesh.proximity.closest_point(mesh, samples)
+    interior_distance, segment_distance_method = _surface_distance(mesh, samples)
     if bool(distance.max() > 1e-6 or interior_distance.max() >= 0.03):
         warnings.append(
             {
                 "code": "SHOULDER_SURFACE_ADHERENCE_REVIEW",
                 "point_max_mm": float(distance.max()),
                 "segment_sample_max_mm": float(interior_distance.max()),
+                "distance_method": segment_distance_method,
             }
         )
         if strict_qc:
@@ -223,6 +243,8 @@ def extract_abutment_margin(mesh, axis, origin=None, *, strict_qc=False):
         "max_neighbor_step_mm": max_step,
         "point_surface_distance_max_mm": float(distance.max()),
         "segment_sample_surface_distance_max_mm": float(interior_distance.max()),
+        "point_distance_method": point_distance_method,
+        "segment_distance_method": segment_distance_method,
         "two_sided_prominence_min_mm": min_pair,
         "weak_prominence_count_before": int(len(weak_before)),
         "weak_prominence_count_after": int(len(weak_after)),
