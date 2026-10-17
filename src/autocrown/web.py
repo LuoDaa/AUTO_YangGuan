@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-import json
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,12 +11,13 @@ from .case_adapter import (
     generate_outer_for_case,
     list_test_cases,
     load_case,
+    localize_case,
     save_uploaded_case,
     template_path,
     work_dir,
 )
 
-app = FastAPI(title="AUTO_YangGuan", version="0.2.0")
+app = FastAPI(title="AUTO_YangGuan", version="0.3.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
@@ -87,6 +87,15 @@ def case_detail(case_id: str):
         raise HTTPException(status_code=404, detail="case not found") from exc
 
 
+@app.post("/api/cases/{case_id}/localize")
+def localize(case_id: str):
+    try:
+        record = localize_case(case_id)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=f"localization failed: {exc}") from exc
+    return _public_case(record)
+
+
 @app.post("/api/cases/{case_id}/generate")
 def generate(case_id: str):
     try:
@@ -102,6 +111,7 @@ def case_asset(case_id: str, asset_name: str):
         record = load_case(case_id)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail="case not found") from exc
+
     allowed = {
         "target": Path(record["target_arch"]),
         "opponent": Path(record["opponent_arch"]),
@@ -112,6 +122,10 @@ def case_asset(case_id: str, asset_name: str):
         "canonical_template": out / "00_template_canonical.stl",
         "support": out / "00_support_component.stl",
         "target_component": out / "00_target_jaw_component.stl",
+        "margin": out / "00_margin.json",
+        "localization": out / "00_localization.json",
+        "mesial": out / "00_neighbor_mesial.stl",
+        "distal": out / "00_neighbor_distal.stl",
         "placed": out / "01_placed.stl",
         "occlusal": out / "04_occlusal.stl",
         "outer": out / "05_outer_candidate.stl",
@@ -126,22 +140,33 @@ def case_asset(case_id: str, asset_name: str):
 
 def _public_case(record: dict) -> dict:
     case_id = record["id"]
-    ready = bool(record.get("output"))
+    output = Path(record.get("output", work_dir() / case_id / "output"))
+    localized = bool(record.get("localization"))
+    generated = bool(record.get("report")) and (output / "05_outer_candidate.stl").exists()
+    localization = record.get("localization")
     return {
         "id": case_id,
         "name": record.get("name"),
         "fdi": record.get("fdi"),
         "source": record.get("source"),
         "status": record.get("status"),
+        "localized": localized,
+        "generated": generated,
         "assets": {
             "target": f"/api/cases/{case_id}/asset/target",
             "opponent": f"/api/cases/{case_id}/asset/opponent",
             "template": f"/api/cases/{case_id}/asset/template",
-            "canonical_template": f"/api/cases/{case_id}/asset/canonical_template" if ready else None,
-            "support": f"/api/cases/{case_id}/asset/support" if ready else None,
-            "outer": f"/api/cases/{case_id}/asset/outer" if ready else None,
-            "report": f"/api/cases/{case_id}/asset/report" if ready else None,
+            "canonical_template": f"/api/cases/{case_id}/asset/canonical_template" if (output / "00_template_canonical.stl").exists() else None,
+            "support": f"/api/cases/{case_id}/asset/support" if localized else None,
+            "target_component": f"/api/cases/{case_id}/asset/target_component" if localized else None,
+            "margin": f"/api/cases/{case_id}/asset/margin" if localized else None,
+            "localization": f"/api/cases/{case_id}/asset/localization" if localized else None,
+            "mesial": f"/api/cases/{case_id}/asset/mesial" if (output / "00_neighbor_mesial.stl").exists() else None,
+            "distal": f"/api/cases/{case_id}/asset/distal" if (output / "00_neighbor_distal.stl").exists() else None,
+            "outer": f"/api/cases/{case_id}/asset/outer" if generated else None,
+            "report": f"/api/cases/{case_id}/asset/report" if generated else None,
         },
+        "localization": localization,
         "report": record.get("report"),
     }
 
