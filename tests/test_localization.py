@@ -16,9 +16,14 @@ def _translated(mesh, xyz):
 
 
 def test_localize_abutment_selects_disconnected_support_and_orients_to_opponent():
-    jaw = _translated(trimesh.creation.box(extents=(24.0, 18.0, 2.0)), (0.0, 0.0, -2.0))
+    # Keep the synthetic main-jaw component denser than the disconnected support,
+    # matching real intraoral scans where the working arch is the dominant mesh.
+    jaw = trimesh.creation.box(extents=(24.0, 18.0, 2.0))
+    for _ in range(3):
+        jaw = jaw.subdivide()
+    jaw = _translated(jaw, (0.0, 0.0, -2.0))
     support = _translated(trimesh.creation.cylinder(radius=2.4, height=6.0, sections=96), (6.0, 0.0, 1.0))
-    distractor = _translated(trimesh.creation.icosphere(subdivisions=2, radius=1.0), (-8.0, 5.0, 0.0))
+    distractor = _translated(trimesh.creation.icosphere(subdivisions=1, radius=1.0), (-8.0, 5.0, 0.0))
     target = trimesh.util.concatenate([jaw, support, distractor])
     opponent = _translated(trimesh.creation.box(extents=(24.0, 18.0, 2.0)), (0.0, 0.0, 10.0))
 
