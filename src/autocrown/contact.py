@@ -14,11 +14,11 @@ from .meshops import (
 
 
 def _domain(mesh: trimesh.Trimesh, frame: PatientFrame, margin: np.ndarray,
-            side: str, lock_mm: float, quantile: float):
+            side: str, lock_mm: float, quantile: float, mesial_sign: float = 1.0):
     local = frame.to_local(mesh.vertices)
     height = axial_height_from_margin(mesh.vertices, margin, frame)
     unlocked = height > float(lock_mm)
-    x = local[:, 0]
+    x = local[:, 0] * float(mesial_sign)
     if not np.any(unlocked):
         return np.zeros(len(mesh.vertices), bool), height
     values = x[unlocked]
@@ -36,18 +36,20 @@ def _domain(mesh: trimesh.Trimesh, frame: PatientFrame, margin: np.ndarray,
 def adapt_proximal(mesh: trimesh.Trimesh, neighbor: trimesh.Trimesh,
                    frame: PatientFrame, margin: np.ndarray, side: str,
                    *, cervical_lock_mm: float,
-                   config: ProximalConfig | None = None):
+                   config: ProximalConfig | None = None,
+                   mesial_sign: float = 1.0):
     """Small local growth + deterministic projection-back against one neighbour.
 
-    This deliberately avoids Boolean cutting and avoids large global scaling.
-    If the crown is too far from the neighbour, only the closest compact patch is
-    allowed to grow, and growth is capped. If it is too close / penetrating, all
-    violating vertices in the proximal domain are projected back toward the target
-    clearance, again with a hard cap.
+    ``frame.x`` is a right-handed arch tangent, not assumed to point mesially on
+    every quadrant. ``mesial_sign`` maps that tangent to the FDI mesial direction
+    without ever flipping the buccal axis of the patient frame.
     """
     cfg = config or ProximalConfig()
     current = mesh.copy()
-    domain, height = _domain(current, frame, margin, side, cervical_lock_mm, cfg.domain_quantile)
+    domain, height = _domain(
+        current, frame, margin, side, cervical_lock_mm, cfg.domain_quantile,
+        mesial_sign=mesial_sign,
+    )
     ids = np.flatnonzero(domain)
     if len(ids) < 8:
         return current, {"status": "NOT_ASSESSED", "reason": "PROXIMAL_DOMAIN_TOO_SMALL", "side": side}
@@ -68,9 +70,6 @@ def adapt_proximal(mesh: trimesh.Trimesh, neighbor: trimesh.Trimesh,
     too_close = finite & (signed < target - tol)
     too_far = finite & (signed > target + tol)
 
-    # Too-far correction is intentionally compact: only the crown vertices already
-    # closest to the neighbour are allowed to grow. This creates a contact core
-    # without dragging an entire axial wall across the edentulous space.
     far_local = np.flatnonzero(too_far)
     growth_local = np.zeros(len(ids), bool)
     if len(far_local):
@@ -86,6 +85,7 @@ def adapt_proximal(mesh: trimesh.Trimesh, neighbor: trimesh.Trimesh,
         report = {
             "status": "NO_CORRECTION_NEEDED",
             "side": side,
+            "mesial_sign": float(mesial_sign),
             "target_gap_mm": target,
             "domain_vertices": int(len(ids)),
             "signed_gap_mm": {
@@ -100,8 +100,6 @@ def adapt_proximal(mesh: trimesh.Trimesh, neighbor: trimesh.Trimesh,
     local_delta = raw_delta[seed_local]
     growth_seed = growth_local[seed_local]
     relief_seed = relief_local[seed_local]
-    # A vertex can theoretically satisfy both masks only through non-finite noise;
-    # use the stricter relief cap for that case.
     capped = local_delta.copy()
     if np.any(growth_seed):
         capped[growth_seed] = cap_vectors(capped[growth_seed], cfg.max_growth_mm)
@@ -125,7 +123,8 @@ def adapt_proximal(mesh: trimesh.Trimesh, neighbor: trimesh.Trimesh,
     return current, {
         "status": "APPLIED",
         "side": side,
-        "method": "COMPACT_GROWTH_PLUS_PROJECTION_BACK_V1",
+        "mesial_sign": float(mesial_sign),
+        "method": "COMPACT_GROWTH_PLUS_PROJECTION_BACK_V2",
         "target_gap_mm": target,
         "domain_vertices": int(len(ids)),
         "growth_seed_vertices": int(growth_local.sum()),
