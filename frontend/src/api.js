@@ -6,7 +6,7 @@ async function request(url, options = {}) {
       const data = await res.json()
       detail = data.detail || JSON.stringify(data)
     } catch {}
-    throw new Error(detail)
+    throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail))
   }
   const type = res.headers.get('content-type') || ''
   return type.includes('application/json') ? res.json() : res
@@ -27,5 +27,6 @@ export const api = {
     return request('/api/cases/upload', {method:'POST', body})
   },
   case: (id) => request(`/api/cases/${id}`),
+  localize: (id) => request(`/api/cases/${id}/localize`, {method:'POST'}),
   generate: (id) => request(`/api/cases/${id}/generate`, {method:'POST'}),
 }
