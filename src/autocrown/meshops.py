@@ -5,7 +5,33 @@ import numpy as np
 import trimesh
 
 
+def _connect_stl_topology(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
+    """Restore shared vertices required by all topology-aware algorithms.
+
+    Binary STL stores three coordinates per triangle and has no vertex-index
+    topology. Loading with ``process=False`` therefore produced meshes where
+    ``vertices == 3 * faces`` and every triangle looked disconnected.  That made
+    connected-component support localization, vertex adjacency smoothing and
+    boundary reasoning fundamentally invalid on real scanner STL files.
+
+    We only merge coincident coordinates and remove unreferenced vertices; no
+    remeshing, smoothing or hole filling is performed.  Geometry coordinates are
+    preserved to STL precision while adjacency becomes meaningful.
+    """
+    out = mesh.copy()
+    if len(out.vertices) >= max(12, int(2.7 * len(out.faces))):
+        # STL duplicates are normally bit-identical; trimesh's deterministic
+        # vertex merge also handles harmless float representation duplicates.
+        out.merge_vertices()
+        out.remove_unreferenced_vertices()
+    return out
+
+
 def load_mesh(path: str | Path) -> trimesh.Trimesh:
+    # Keep file import conservative and do the only required topology repair
+    # explicitly below.  This avoids letting trimesh's generic processing change
+    # geometry semantics while still restoring the shared-vertex graph that STL
+    # itself does not encode.
     obj = trimesh.load_mesh(str(path), process=False)
     if isinstance(obj, trimesh.Scene):
         if not obj.geometry:
@@ -17,6 +43,9 @@ def load_mesh(path: str | Path) -> trimesh.Trimesh:
         raise ValueError(f"mesh is empty: {path}")
     if not np.isfinite(np.asarray(obj.vertices, float)).all():
         raise ValueError(f"mesh contains NaN/Inf: {path}")
+    obj = _connect_stl_topology(obj)
+    if len(obj.vertices) == 0 or len(obj.faces) == 0:
+        raise ValueError(f"mesh topology collapsed during STL vertex merge: {path}")
     return obj
 
 
