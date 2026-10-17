@@ -3,8 +3,8 @@
 Core frame is owned only by confirmed/accepted Margin + insertion axis:
 Origin = Margin centroid; Z = insertion axis; X = principal axis of Margin projected
 onto the plane perpendicular to Z; Y = Z×X; X is recomputed for strict right-handed
-orthogonality.  AUTO_YangGuan then resolves the otherwise valid 180° X/Y sign
-ambiguity with the working-arch outward radial direction, without changing Z.
+orthogonality. AUTO_YangGuan resolves the otherwise valid 180° X/Y sign ambiguity
+with the working-arch outward radial direction, without changing Z.
 """
 from __future__ import annotations
 
@@ -96,7 +96,7 @@ def build_patient_frame(
         radial_length = float(np.linalg.norm(radial))
         if radial_length >= 0.5:
             radial /= radial_length
-            # Sign resolution only: keep the CrownFlow geometric frame, choose the
+            # Sign resolution only: keep CrownFlow's geometric frame, choose the
             # equivalent orientation whose +Y points outward/buccal.
             if float(y @ radial) < 0.0:
                 x = -x
@@ -111,11 +111,15 @@ def build_patient_frame(
         "x": x.tolist(),
         "y": y.tolist(),
         "z": z.tolist(),
+        "x_semantics": "RIGHT_HANDED_ARCH_TANGENT_FDI_SIGN_RESOLVED_LATER",
+        "y_semantics": "BUCCAL_ARCH_OUTWARD",
+        "z_semantics": "INSERTION_TOWARD_ANTAGONIST",
         "margin_projection_rms_mm": rms,
         "margin_inplane_eigenvalues": [float(v) for v in eigvals],
         "sign_source": sign_source,
         "arch_center": None if arch_center is None else np.asarray(arch_center, float).tolist(),
         "arch_radial_length_mm": radial_length,
+        "handedness": float(np.linalg.det(frame.matrix)),
         "validation": validation,
     }
     return frame, report
