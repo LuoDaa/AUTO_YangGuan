@@ -7,7 +7,7 @@ import trimesh
 
 from .config import PipelineConfig
 from .contact import adapt_proximal
-from .frame import PatientFrame
+from .frame import PatientFrame, axial_height_from_margin
 from .meshops import save_mesh
 from .occlusion import adapt_occlusion
 from .placement import place_template
@@ -20,6 +20,118 @@ def _write_stage(mesh: trimesh.Trimesh, out_dir: Path | None, name: str) -> str 
     path = out_dir / f"{name}.stl"
     save_mesh(mesh, path)
     return str(path)
+
+
+def _robust_top_z(
+    mesh: trimesh.Trimesh | None,
+    frame: PatientFrame,
+    *,
+    quantile: float = 0.90,
+) -> float | None:
+    if mesh is None or len(mesh.vertices) < 8:
+        return None
+    local = frame.to_local(np.asarray(mesh.vertices, float))
+    z = np.asarray(local[:, 2], float)
+    z = z[np.isfinite(z)]
+    if len(z) < 8:
+        return None
+    return float(np.quantile(z, quantile))
+
+
+def _fit_height_to_neighbors(
+    mesh: trimesh.Trimesh,
+    frame: PatientFrame,
+    margin: np.ndarray,
+    *,
+    mesial: trimesh.Trimesh | None,
+    distal: trimesh.Trimesh | None,
+    cervical_lock_mm: float,
+) -> tuple[trimesh.Trimesh, dict]:
+    """Match global crown height to the adjacent occlusal level without moving Margin.
+
+    Placement owns X/Y and the cervical anchor. This stage owns only the missing
+    global Z degree of freedom. The occlusal body is translated along the confirmed
+    insertion axis with a smooth cervical ramp, while the locked Margin band stays
+    exactly fixed. The later OCCLUSAL stage remains a local relief-only safety pass.
+    """
+    current = mesh.copy()
+    vertices = np.asarray(current.vertices, float)
+    if len(vertices) < 8 or not np.isfinite(vertices).all():
+        return current, {"status": "NOT_ASSESSED", "reason": "INVALID_CROWN_MESH"}
+
+    neighbor_levels: dict[str, float] = {}
+    for name, neighbor in (("mesial", mesial), ("distal", distal)):
+        value = _robust_top_z(neighbor, frame, quantile=0.90)
+        if value is not None:
+            neighbor_levels[name] = value
+
+    if not neighbor_levels:
+        return current, {
+            "status": "NOT_ASSESSED",
+            "reason": "NO_NEIGHBOR_OCCLUSAL_REFERENCE",
+            "method": "ADJACENT_OCCLUSAL_HEIGHT_FIT_V1",
+        }
+
+    local = frame.to_local(vertices)
+    z = np.asarray(local[:, 2], float)
+    finite = np.isfinite(z)
+    if int(finite.sum()) < 8:
+        return current, {"status": "NOT_ASSESSED", "reason": "NO_FINITE_CROWN_Z"}
+
+    current_top = float(np.quantile(z[finite], 0.90))
+    levels = np.asarray(list(neighbor_levels.values()), float)
+    spread = float(np.ptp(levels)) if len(levels) > 1 else 0.0
+    if spread > 2.50:
+        # If neighbor extraction disagrees strongly, avoid over-erupting the crown.
+        target_top = float(np.min(levels))
+        target_policy = "LOWER_NEIGHBOR_CONSERVATIVE_FALLBACK"
+    else:
+        target_top = float(np.median(levels))
+        target_policy = "MEDIAN_ADJACENT_OCCLUSAL_LEVEL"
+
+    requested_shift = target_top - current_top
+    applied_shift = float(np.clip(requested_shift, -1.50, 2.00))
+    if abs(applied_shift) < 0.06:
+        return current, {
+            "status": "NO_CORRECTION_NEEDED",
+            "method": "ADJACENT_OCCLUSAL_HEIGHT_FIT_V1",
+            "neighbor_top_z_mm": neighbor_levels,
+            "neighbor_spread_mm": spread,
+            "target_policy": target_policy,
+            "current_top_z_mm": current_top,
+            "target_top_z_mm": target_top,
+            "requested_shift_mm": requested_shift,
+            "applied_shift_mm": 0.0,
+        }
+
+    height = axial_height_from_margin(vertices, margin, frame)
+    lock = float(cervical_lock_mm)
+    blend_span = 1.60
+    u = np.clip((height - lock) / blend_span, 0.0, 1.0)
+    weight = u * u * (3.0 - 2.0 * u)
+
+    new_vertices = vertices + (applied_shift * weight)[:, None] * np.asarray(frame.z, float)
+    locked = height <= lock
+    new_vertices[locked] = vertices[locked]
+    current.vertices = new_vertices
+
+    after_top = float(np.quantile(frame.to_local(new_vertices)[:, 2], 0.90))
+    return current, {
+        "status": "APPLIED",
+        "method": "ADJACENT_OCCLUSAL_HEIGHT_FIT_V1",
+        "neighbor_top_z_mm": neighbor_levels,
+        "neighbor_spread_mm": spread,
+        "target_policy": target_policy,
+        "current_top_z_mm": current_top,
+        "target_top_z_mm": target_top,
+        "requested_shift_mm": requested_shift,
+        "applied_shift_mm": applied_shift,
+        "shift_clamped": bool(abs(applied_shift - requested_shift) > 1e-8),
+        "top_after_z_mm": after_top,
+        "cervical_locked_vertices": int(locked.sum()),
+        "full_shift_vertices": int((weight >= 1.0 - 1e-9).sum()),
+        "blend_span_mm": blend_span,
+    }
 
 
 def build_outer_crown(template: trimesh.Trimesh, margin: np.ndarray, frame: PatientFrame,
@@ -57,8 +169,24 @@ def build_outer_crown(template: trimesh.Trimesh, margin: np.ndarray, frame: Pati
     p = _write_stage(placed, out_path, "01_placed")
     if p:
         report["artifacts"]["placed"] = p
-    reference = placed.copy()
-    current = placed.copy()
+
+    current, height_report = _fit_height_to_neighbors(
+        placed,
+        frame,
+        margin,
+        mesial=mesial,
+        distal=distal,
+        cervical_lock_mm=cfg.quality.cervical_lock_mm,
+    )
+    report["stages"].append({"name": "HEIGHT", **height_report})
+    p = _write_stage(current, out_path, "01_height_fit")
+    if p:
+        report["artifacts"]["height_fit"] = p
+
+    # Height fitting is part of placement, so downstream QC compares shape edits
+    # against the height-corrected anatomical prior rather than penalizing the
+    # required global occlusal-level correction itself.
+    reference = current.copy()
 
     if mesial is not None:
         current, r = adapt_proximal(
