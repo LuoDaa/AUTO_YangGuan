@@ -8,11 +8,11 @@ from autocrown.crownflow_patient_frame import build_patient_frame
 
 
 def _shouldered_abutment(sections=128):
-    """Closed synthetic abutment with a clear circumferential shoulder at z=0."""
+    """Closed synthetic abutment with a unique circumferential shoulder at z=0."""
     theta = np.linspace(0.0, 2.0 * np.pi, sections, endpoint=False)
     profiles = [
-        (3.35, -0.35),  # short base skirt
-        (3.35, 0.00),   # outer shoulder edge
+        (3.00, -0.35),  # smaller base/truncation ring; not the clinical shoulder
+        (3.35, 0.00),   # unique outer shoulder edge
         (2.75, 0.00),   # horizontal shoulder table
         (2.35, 3.80),   # tapered preparation wall
         (2.20, 4.25),   # top edge
@@ -54,10 +54,10 @@ def test_crownflow_shoulder_port_finds_cervical_ring_not_top():
     assert len(margin) == 128
     assert np.isfinite(margin).all()
     radius = np.linalg.norm(margin[:, :2], axis=1)
-    # The mature DP should prefer the prominent large-radius shoulder around z=0,
-    # not the smaller occlusal/top edge around z=4.25.
+    # The mature DP should prefer the unique prominent large-radius shoulder
+    # around z=0, not the smaller base ring or occlusal/top edge.
     assert abs(float(np.median(margin[:, 2]))) < 0.20
-    assert float(np.median(radius)) > 3.0
+    assert float(np.median(radius)) > 3.2
 
 
 def test_crownflow_axis_port_uses_margin_and_sidewall_evidence():
