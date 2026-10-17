@@ -26,13 +26,16 @@ def build_outer_crown(template: trimesh.Trimesh, margin: np.ndarray, frame: Pati
                       *, mesial: trimesh.Trimesh | None = None,
                       distal: trimesh.Trimesh | None = None,
                       antagonist: trimesh.Trimesh | None = None,
+                      mesial_sign: float = 1.0,
                       config: PipelineConfig | None = None,
                       out_dir: str | Path | None = None):
     """Build a conservative outer-crown candidate.
 
-    The pipeline is intentionally sequential and inspectable. Every stage is
-    bounded and the original placed morphology is kept as the QC reference.
-    Missing neighbour/opponent surfaces simply skip their corresponding stage.
+    ``frame.x`` is a deterministic right-handed arch tangent and ``frame.y`` is
+    the buccal/outward direction. ``mesial_sign`` tells the proximal solver which
+    sign of the arch tangent corresponds to the FDI mesial side. This keeps the
+    placement frame stable instead of rotating the whole crown 180 degrees merely
+    to satisfy a side label.
     """
     cfg = config or PipelineConfig()
     out_path = Path(out_dir) if out_dir is not None else None
@@ -40,8 +43,10 @@ def build_outer_crown(template: trimesh.Trimesh, margin: np.ndarray, frame: Pati
         out_path.mkdir(parents=True, exist_ok=True)
 
     report: dict = {
-        "pipeline": "AUTO_YANGGUAN_HYBRID_MVP_1",
+        "pipeline": "AUTO_YANGGUAN_HYBRID_MVP_2",
         "goal": "FAST_CONSERVATIVE_20_40_POINT_CROWN",
+        "frame_contract": "X_RIGHT_HANDED_ARCH_TANGENT_Y_BUCCAL_Z_INSERTION",
+        "mesial_sign_on_frame_x": float(mesial_sign),
         "config": cfg.as_dict(),
         "stages": [],
         "artifacts": {},
@@ -60,6 +65,7 @@ def build_outer_crown(template: trimesh.Trimesh, margin: np.ndarray, frame: Pati
             current, mesial, frame, margin, "mesial",
             cervical_lock_mm=cfg.quality.cervical_lock_mm,
             config=cfg.proximal,
+            mesial_sign=mesial_sign,
         )
         report["stages"].append({"name": "MESIAL", **r})
         p = _write_stage(current, out_path, "02_mesial")
@@ -73,6 +79,7 @@ def build_outer_crown(template: trimesh.Trimesh, margin: np.ndarray, frame: Pati
             current, distal, frame, margin, "distal",
             cervical_lock_mm=cfg.quality.cervical_lock_mm,
             config=cfg.proximal,
+            mesial_sign=mesial_sign,
         )
         report["stages"].append({"name": "DISTAL", **r})
         p = _write_stage(current, out_path, "03_distal")
