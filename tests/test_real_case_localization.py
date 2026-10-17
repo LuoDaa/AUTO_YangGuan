@@ -15,12 +15,17 @@ def test_real_fdi36_case_localizes_support_margin_axis_and_frame():
     try:
         result = localize_case(record["id"])
         loc = result["localization"]
+        abutment = loc["abutment"]
 
-        assert loc["abutment"]["selected_component_index"] >= 1
+        # Component indices are ordering-dependent; the clinical invariant is that
+        # the selected support must not be the working-jaw component.
+        assert abutment["selected_component_index"] != abutment["main_jaw_component_index"]
+        assert abutment["method"] == "ARCH_AREA_SUPPORT_RANK_WALL_NORMAL_V3"
         assert len(loc["margin_points"]) >= 64
         axis = np.asarray(loc["axis"]["axis"], float)
         assert np.isfinite(axis).all()
         assert np.isclose(np.linalg.norm(axis), 1.0, atol=1e-5)
+        assert loc["axis"].get("axis_alignment_to_opponent", 0.0) > 0.0
 
         frame = loc["frame"]
         matrix = np.column_stack((frame["x"], frame["y"], frame["z"]))
