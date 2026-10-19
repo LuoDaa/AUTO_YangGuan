@@ -62,6 +62,7 @@ export default function Viewer({ assets, visible = {}, localization = null }) {
     assets?.outer && { key:'outer', url:assets.outer, color:'#f2c94c', opacity:1 },
     assets?.blockout && { key:'blockout', url:assets.blockout, color:'#37bdf8', opacity:0.38 },
     assets?.cutter && { key:'cutter', url:assets.cutter, color:'#62d6c4', opacity:0.45 },
+    assets?.intaglio_candidate && { key:'intaglio_candidate', url:assets.intaglio_candidate, color:'#e599f7', opacity:0.95 },
   ].filter(Boolean)
 
   return (
