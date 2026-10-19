@@ -42,7 +42,7 @@ def generate_cutter_artifacts(
     report = {
         "status": "REVIEW_REQUIRED",
         "method": "CROWNFLOW_ENGINEERING_CUTTER_STAGE_V1",
-        "source": "PREPARED_SUPPORT_CANDIDATE",
+        "source": "EXTRACTED_ABUTMENT_COMPONENT_NOT_PREPARED_SUPPORT_CONTRACT",
         "support_source_unchanged": True,
         "accepted_outer_unchanged": True,
         "clinical_final_ready": False,
