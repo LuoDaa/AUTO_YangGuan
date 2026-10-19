@@ -56,11 +56,28 @@ def save_mesh(mesh: trimesh.Trimesh, path: str | Path) -> None:
 
 
 def closest_points(mesh: trimesh.Trimesh, points: np.ndarray):
-    """Triangle closest-point query with a no-rtree fallback."""
+    """Exact triangle closest-point query, memory safe when acceleration fails.
+
+    CrownFlow treats patient/antagonist triangles as physical truth, not a
+    face-centroid point cloud. A full naive N-query × M-triangle expansion can
+    exhaust RAM on whole-jaw STL scans. We therefore rely on the required
+    rtree-backed exact query for real cases and allow the naive implementation
+    only for genuinely small synthetic fixtures.
+    """
     points = np.asarray(points, float)
+    if points.ndim != 2 or points.shape[1] != 3:
+        raise ValueError("closest-points query requires Nx3 points")
+    if not np.isfinite(points).all() or not len(mesh.faces):
+        raise ValueError("invalid query points or empty triangle mesh")
     try:
         cp, dist, fid = trimesh.proximity.closest_point(mesh, points)
-    except Exception:
+    except Exception as exc:
+        if int(len(points)) * int(len(mesh.faces)) > 1_000_000:
+            raise RuntimeError(
+                "EXACT_TRIANGLE_QUERY_BACKEND_UNAVAILABLE: use the installed "
+                "R-tree backend instead of a potentially out-of-memory "
+                "quadratic fallback"
+            ) from exc
         cp, dist, fid = trimesh.proximity.closest_point_naive(mesh, points)
     return np.asarray(cp, float), np.asarray(dist, float), np.asarray(fid, int)
 
