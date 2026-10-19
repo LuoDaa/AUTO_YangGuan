@@ -111,10 +111,11 @@ function CasePage({ caseData, onLocalize, onAcknowledge, onGenerate, busy, messa
 }
 
 function DesignPage({ caseData, onBack }) {
-  const [visible, setVisible] = useState({target:true, opponent:true, support:true, mesial:false, distal:false, margin:true, frame:true, outer:true, placed:false, height_fit:false, mesial_fit:false, distal_fit:false, occlusal:false})
+  const [visible, setVisible] = useState({target:true, opponent:true, support:true, mesial:false, distal:false, margin:true, frame:true, outer:true, blockout:false, cutter:false, placed:false, height_fit:false, mesial_fit:false, distal_fit:false, occlusal:false})
   const report = caseData.report || {}
   const qc = report.outer_qc || {}
   const loc = caseData.localization || {}
+  const inner = report.intaglio_engineering || {}
   return <div className="page design-page">
     <div className="design-toolbar">
       <button className="secondary" onClick={onBack}>← 返回订单 / 定位</button>
@@ -126,7 +127,7 @@ function DesignPage({ caseData, onBack }) {
       <aside className="side-panel">
         <div><small>DISPLAY</small><h3>显示</h3></div>
         {[
-          ['target','目标颌'],['opponent','对颌'],['support','基台'],['mesial','近中参考'],['distal','远中参考'],['margin','Margin'],['frame','XYZ / 插入轴'],['placed','初始摆位'],['height_fit','冠高适配'],['mesial_fit','近中适配后'],['distal_fit','远中适配后'],['occlusal','咬合后'],['outer','最终外冠']
+          ['target','目标颌'],['opponent','对颌'],['support','基台'],['mesial','近中参考'],['distal','远中参考'],['margin','Margin'],['frame','XYZ / 插入轴'],['placed','初始摆位'],['height_fit','冠高适配'],['mesial_fit','近中适配后'],['distal_fit','远中适配后'],['occlusal','咬合后'],['outer','最终外冠'],['blockout','方向倒凹填补体'],['cutter','工程内腔 Cutter']
         ].map(([key,label]) => <label className="toggle" key={key}><input type="checkbox" checked={visible[key] !== false} onChange={e=>setVisible(v=>({...v,[key]:e.target.checked}))}/><span>{label}</span></label>)}
         <hr/>
         <div><small>LOCALIZATION</small><h3>定位</h3></div>
@@ -150,7 +151,17 @@ function DesignPage({ caseData, onBack }) {
             <b>{stage.geometry_guard?.accepted_fraction != null ? `${Math.round(stage.geometry_guard.accepted_fraction * 100)}%` : '—'}</b>
           </div>)}
         </div>
-        <div className="warn"><b>当前测试边界</b><p>基台定位、自动 Margin、插入轴、PatientFrame、邻牙参考与保守外冠已经接入。若模板来源或邻牙识别未通过验证，会显示复核状态；正式内冠及制造验收尚未纳入本 MVP。</p></div>
+        <hr/>
+        <div><small>CROWNFLOW INTAGLIO CORE</small><h3>工程内腔（非最终内冠）</h3></div>
+        <div className="metrics">
+          <div><span>定向 Blockout / Gap Cutter</span><b>{inner.status || '尚未计算'}</b></div>
+          <div><span>三角面</span><b>{inner.cutter?.faces ?? '—'}</b></div>
+          <div><span>Cutter 体积</span><b>{inner.cutter?.volume_mm3 != null ? `${Number(inner.cutter.volume_mm3).toFixed(2)} mm³` : '—'}</b></div>
+        </div>
+        {inner.reason && <div className="warn"><b>内腔构建需复核</b><p>{inner.reason}：{inner.error || '请查看内腔诊断 JSON'}</p></div>}
+        {caseData.assets.cutter && <a className="link" href={caseData.assets.cutter} download>导出工程 Cutter STL（非最终牙冠）</a>}
+        {caseData.assets.intaglio_report && <a className="link" href={caseData.assets.intaglio_report} target="_blank" rel="noreferrer">打开 intaglio_report.json</a>}
+        <div className="warn"><b>当前测试边界</b><p>已接入 CrownFlow 定向 blockout 与 variable cement gap cutter，但这只是内腔工程实体，仍须验证 support-owned 临床内表面、完整 Margin 颈缘组装、真实壁厚与就位后才能称为 final。外冠仍是独立测试候选。</p></div>
         {caseData.assets.canonical_template && <a className="link" href={caseData.assets.canonical_template} download>导出规范化牙库模板</a>}
         {caseData.assets.localization && <a className="link" href={caseData.assets.localization} target="_blank" rel="noreferrer">打开 localization.json</a>}
         {caseData.assets.report && <a className="link" href={caseData.assets.report} target="_blank">打开 report.json</a>}
