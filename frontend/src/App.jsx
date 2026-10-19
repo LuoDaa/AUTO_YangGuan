@@ -70,7 +70,7 @@ function LocalizationSummary({ localization }) {
   </>
 }
 
-function CasePage({ caseData, onLocalize, onGenerate, busy, message }) {
+function CasePage({ caseData, onLocalize, onAcknowledge, onGenerate, busy, message }) {
   const [visible, setVisible] = useState({target:true, opponent:true, support:true, margin:true, frame:true})
   return <div className="page order-page">
     <div className="page-title"><div><small>NEW CROWN ORDER</small><h1>新建牙冠病例</h1><p>必须先确认基台位置、Margin 与插入轴方向正确，再进入模板牙摆放。</p></div><div className="order-meta"><span>FDI</span><b>{caseData.fdi}</b></div></div>
@@ -86,7 +86,7 @@ function CasePage({ caseData, onLocalize, onGenerate, busy, message }) {
         </div>
         {caseData.localized && <div className="metrics">
           {[
-            ['support','基台'],['margin','Margin'],['frame','XYZ坐标']
+            ['target','目标颌'],['opponent','对颌'],['support','基台'],['margin','Margin'],['frame','XYZ坐标']
           ].map(([key,label]) => <label className="toggle" key={key}><input type="checkbox" checked={visible[key] !== false} onChange={e=>setVisible(v=>({...v,[key]:e.target.checked}))}/><span>{label}</span></label>)}
         </div>}
       </section>
@@ -96,7 +96,14 @@ function CasePage({ caseData, onLocalize, onGenerate, busy, message }) {
         <LocalizationSummary localization={caseData.localization} />
         <button className="secondary full" disabled={busy} onClick={onLocalize}>{busy ? '处理中…' : caseData.localized ? '重新定位并复核' : '1. 基台定位 / Margin / 插入轴'}</button>
         <div className="notice">{message || (caseData.localized ? '请在左侧确认棕色基台、绿色 Margin、紫色 Z 插入轴和蓝色 Y 颊侧方向正确。' : '先执行定位。')}</div>
-        <button className="primary generate" disabled={busy || !caseData.localized} onClick={onGenerate}>{busy ? '正在生成牙冠…' : '2. 牙冠生成'}</button>
+        {caseData.localized && <>
+          {caseData.localization?.status !== 'READY' && <div className="warn"><b>定位待复核</b><p>{(caseData.localization?.reasons || []).join(' / ') || '几何定位证据不足，请仔细检查 3D。'}</p></div>}
+          <button className="secondary full" disabled={busy || caseData.localization_acknowledged} onClick={onAcknowledge}>
+            {caseData.localization_acknowledged ? '✓ 本次基台 / Margin / XYZ 已核对' : '我已在 3D 核对基台、Margin 与插入轴'}
+          </button>
+          <small>每次重新定位后都必须重新核对；确认绑定本次扫描、模板与定位结果。</small>
+        </>}
+        <button className="primary generate" disabled={busy || !caseData.localized || !caseData.localization_acknowledged} onClick={onGenerate}>{busy ? '正在生成牙冠…' : caseData.localization_acknowledged ? '2. 牙冠生成' : '请先确认定位'}</button>
         {!caseData.localized && <small>未完成定位时禁止生成，避免再次出现模板牙方向错误。</small>}
       </section>
     </div>
@@ -104,7 +111,7 @@ function CasePage({ caseData, onLocalize, onGenerate, busy, message }) {
 }
 
 function DesignPage({ caseData, onBack }) {
-  const [visible, setVisible] = useState({target:true, opponent:true, support:true, mesial:false, distal:false, margin:true, frame:true, outer:true})
+  const [visible, setVisible] = useState({target:true, opponent:true, support:true, mesial:false, distal:false, margin:true, frame:true, outer:true, placed:false, height_fit:false, mesial_fit:false, distal_fit:false, occlusal:false})
   const report = caseData.report || {}
   const qc = report.outer_qc || {}
   const loc = caseData.localization || {}
@@ -119,7 +126,7 @@ function DesignPage({ caseData, onBack }) {
       <aside className="side-panel">
         <div><small>DISPLAY</small><h3>显示</h3></div>
         {[
-          ['target','目标颌'],['opponent','对颌'],['support','基台'],['mesial','近中参考'],['distal','远中参考'],['margin','Margin'],['frame','XYZ / 插入轴'],['outer','自动外冠']
+          ['target','目标颌'],['opponent','对颌'],['support','基台'],['mesial','近中参考'],['distal','远中参考'],['margin','Margin'],['frame','XYZ / 插入轴'],['placed','初始摆位'],['height_fit','冠高适配'],['mesial_fit','近中适配后'],['distal_fit','远中适配后'],['occlusal','咬合后'],['outer','最终外冠']
         ].map(([key,label]) => <label className="toggle" key={key}><input type="checkbox" checked={visible[key] !== false} onChange={e=>setVisible(v=>({...v,[key]:e.target.checked}))}/><span>{label}</span></label>)}
         <hr/>
         <div><small>LOCALIZATION</small><h3>定位</h3></div>
@@ -133,11 +140,19 @@ function DesignPage({ caseData, onBack }) {
         <div><small>QC</small><h3>工程检查</h3></div>
         <div className="metrics">
           <div><span>状态</span><b>{qc.status || caseData.status}</b></div>
-          <div><span>最大位移</span><b>{qc.max_displacement_mm != null ? `${Number(qc.max_displacement_mm).toFixed(2)} mm` : '—'}</b></div>
-          <div><span>P95 位移</span><b>{qc.p95_displacement_mm != null ? `${Number(qc.p95_displacement_mm).toFixed(2)} mm` : '—'}</b></div>
+          <div><span>最大位移</span><b>{qc.displacement?.max_mm != null ? `${Number(qc.displacement.max_mm).toFixed(2)} mm` : '—'}</b></div>
+          <div><span>P95 位移</span><b>{qc.displacement?.p95_mm != null ? `${Number(qc.displacement.p95_mm).toFixed(2)} mm` : '—'}</b></div>
         </div>
-        <div className="warn"><b>当前测试边界</b><p>基台定位、自动 Margin、插入轴、PatientFrame、邻牙参考与保守外冠已经接入。自动 Margin/Axis 仍是工程候选，必须视觉复核；正式内冠尚未纳入本 MVP。</p></div>
-        {caseData.assets.localization && <a className="link" href={caseData.assets.localization} target="_blank">打开 localization.json</a>}
+        {report.readiness?.reasons?.length > 0 && <div className="warn"><b>本次结果需复核</b><p>{report.readiness.reasons.join(' / ')}</p></div>}
+        <div className="metrics">
+          {(report.stages || []).map((stage, index) => <div key={index}>
+            <span>{stage.name} · {stage.geometry_guard?.status || stage.status || '—'}</span>
+            <b>{stage.geometry_guard?.accepted_fraction != null ? `${Math.round(stage.geometry_guard.accepted_fraction * 100)}%` : '—'}</b>
+          </div>)}
+        </div>
+        <div className="warn"><b>当前测试边界</b><p>基台定位、自动 Margin、插入轴、PatientFrame、邻牙参考与保守外冠已经接入。若模板来源或邻牙识别未通过验证，会显示复核状态；正式内冠及制造验收尚未纳入本 MVP。</p></div>
+        {caseData.assets.canonical_template && <a className="link" href={caseData.assets.canonical_template} download>导出规范化牙库模板</a>}
+        {caseData.assets.localization && <a className="link" href={caseData.assets.localization} target="_blank" rel="noreferrer">打开 localization.json</a>}
         {caseData.assets.report && <a className="link" href={caseData.assets.report} target="_blank">打开 report.json</a>}
       </aside>
     </div>
@@ -170,8 +185,14 @@ export default function App() {
     try { const c = await api.localize(caseData.id); setCaseData(c); setMessage(c.localization?.status === 'READY' ? '定位完成，请检查基台、Margin 与 XYZ 方向。' : '定位完成但存在复核项，请重点检查基台和紫色 Z 轴。') }
     catch(e){ setMessage(e.message) } finally { setBusy(false) }
   }
-  async function generate() {
+  async function acknowledge() {
     if (!caseData?.localized) return
+    setBusy(true); setMessage('正在保存本次定位确认…')
+    try { const c = await api.acknowledgeLocalization(caseData.id); setCaseData(c); setMessage('已绑定本次 Margin / 插入轴 / PatientFrame，允许生成工程外冠。') }
+    catch(e){ setMessage(e.message) } finally { setBusy(false) }
+  }
+  async function generate() {
+    if (!caseData?.localized || !caseData?.localization_acknowledged) return
     setBusy(true); setMessage('正在执行：canonical 模板 → Margin 放置 → 近远中小范围适配 → 对颌避让 → QC…')
     try { const c = await api.generate(caseData.id); setCaseData(c); setStep('design'); setMessage('外冠候选已生成。') }
     catch(e){ setMessage(e.message) } finally { setBusy(false) }
@@ -183,7 +204,7 @@ export default function App() {
     {step !== 'home' && <Stepper step={step}/>} 
     <main>
       {step === 'home' && <Home testCases={testCases} onPickTest={pickTest} onUpload={upload} busy={busy}/>} 
-      {step === 'case' && caseData && <CasePage caseData={caseData} onLocalize={localize} onGenerate={generate} busy={busy} message={message}/>} 
+      {step === 'case' && caseData && <CasePage caseData={caseData} onLocalize={localize} onAcknowledge={acknowledge} onGenerate={generate} busy={busy} message={message}/>} 
       {step === 'design' && caseData && <DesignPage caseData={caseData} onBack={()=>setStep('case')}/>} 
     </main>
     {message && <div className="toast">{message}<button onClick={()=>setMessage('')}>×</button></div>}
