@@ -35,6 +35,10 @@ def test_molar_template_canonical_axis_is_occlusally_referenced(fdi):
     assert abs(float(np.quantile(v[:, 2], 0.02))) < 1e-6
     assert report["cervical_to_body_offset_ratio"] < 0.55
     assert 0.18 <= report["crown_height_width_ratio"] <= 3.20
+    assert report["clinical_cervical_valid"], {
+        "fdi": fdi,
+        "cervical_cut": report["cervical_cut"],
+    }
 
 
 def test_fdi36_cervical_band_owns_template_xy_origin():
