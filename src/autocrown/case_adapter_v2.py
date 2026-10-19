@@ -404,6 +404,14 @@ def generate_outer_for_case(case_id: str, *, require_acknowledgement: bool = Fal
         "mesial": mesial_report,
         "distal": distal_report,
     }
+    # CrownFlow-derived cutter is a separate, nonblocking W3 stage. A good
+    # outer remains available even when support topology cannot form a cutter.
+    from .intaglio_workflow import generate_cutter_artifacts
+    support_for_cutter = load_mesh(record["localization_assets"]["support"])
+    intaglio_stage = generate_cutter_artifacts(
+        support_for_cutter, margin, frame, out,
+    )
+    report["intaglio_engineering"] = intaglio_stage
     neighbor_review = [
         side for side, row in (("mesial", mesial_report), ("distal", distal_report))
         if row.get("status") != "READY"
@@ -429,7 +437,8 @@ def generate_outer_for_case(case_id: str, *, require_acknowledgement: bool = Fal
         report["status"] = "OUTER_REVIEW_REQUIRED"
     report["limitations"] = [
         "AUTO_MARGIN_AND_AXIS_ARE_ENGINEERING_CANDIDATES_REQUIRE_VISUAL_REVIEW",
-        "FINAL_INTAGLIO_NOT_IN_THIS_OUTER_MVP",
+        "DIRECTIONAL_CUTTER_IS_NOT_CLINICAL_INTAGLIO_OR_FINAL_CROWN",
+        "FINAL_CERVICAL_MARGIN_ASSEMBLY_PENDING",
     ]
     (out / "report.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
