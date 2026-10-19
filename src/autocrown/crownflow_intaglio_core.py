@@ -605,7 +605,7 @@ def build_blockout(
     above_margin = np.ones(len(areas), dtype=bool)
     if len(margin) >= 3:
         from .crownflow_insertion import _robust_plane
-        mc, mn, _ = _robust_plane(margin)
+        mc, mn = _robust_plane(margin)[:2]  # standalone axis port also reports in-plane basis
         if float(np.dot(mn, axis)) < 0:
             mn = -mn
         above_margin = (np.asarray(support_mesh.triangles_center) - mc) @ mn > 0.05
