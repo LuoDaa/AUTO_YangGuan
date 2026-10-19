@@ -8,6 +8,7 @@ import trimesh
 from scipy.ndimage import gaussian_filter1d
 
 from .meshops import load_mesh
+from .template_cervical import extract_clean_crown_surface
 
 
 def _unit(value: np.ndarray, name: str = "vector") -> np.ndarray:
@@ -245,6 +246,16 @@ def canonicalize_full_tooth(
     if crown is None or len(crown.faces) < 100:
         raise ValueError("template crown extraction produced insufficient geometry")
 
+    # STL-only Dental Merlin inputs have no reliable labeled cervical seam.
+    # Perform an exact triangle cut and prove one complete open rim before
+    # downstream placement. A fallback remains visible for engineering review,
+    # but can never be reported as clinically validated geometry.
+    cleaned, cervical_cut = extract_clean_crown_surface(
+        template, z_axis, center, crown_cut
+    )
+    if cleaned is not None:
+        crown = cleaned
+
     cv = np.asarray(crown.vertices, float)
     crown_center = cv.mean(axis=0)
     centered = cv - crown_center
@@ -292,6 +303,8 @@ def canonicalize_full_tooth(
     crown.vertices = local
     return crown, {
         "mode": "FULL_TOOTH_TO_CANONICAL_CROWN_V4_LIBRARY_OCCLUSAL",
+        "clinical_cervical_valid": bool(cleaned is not None),
+        "cervical_cut": cervical_cut,
         "source_faces": int(len(template.faces)),
         "crown_faces": int(len(crown.faces)),
         "axis": axis_report,
