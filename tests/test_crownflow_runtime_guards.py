@@ -113,3 +113,29 @@ def test_case_path_safety_and_localization_revision_acknowledgment(tmp_path, mon
     f.write_bytes(b"geometry-2")
     with pytest.raises(ValueError, match="changed"):
         impl.acknowledge_localization(case_id)
+
+
+def test_local_antagonist_roi_excludes_unrelated_far_teeth():
+    from autocrown.patient_constraints import extract_local_antagonist
+
+    margin = np.c_[
+        2.0 * np.cos(np.linspace(0, 2 * np.pi, 16, endpoint=False)),
+        2.0 * np.sin(np.linspace(0, 2 * np.pi, 16, endpoint=False)),
+        np.zeros(16),
+    ]
+    frame = build_confirmed_frame(margin, [1, 0, 0], [0, 1, 0], [0, 0, 1])
+    crown = trimesh.creation.icosphere(radius=2.0)
+    crown.apply_translation([0, 0, 3])
+    near = trimesh.creation.box(extents=[5, 5, 1])
+    near.apply_translation([0, 0, 6])
+    far = trimesh.creation.box(extents=[5, 5, 1])
+    far.apply_translation([25, 0, 6])
+    opponent = trimesh.util.concatenate([near, far])
+    patch, report = extract_local_antagonist(opponent, crown, frame)
+
+    assert report["status"] == "PASS_ENGINEERING", report
+    assert patch is not None
+    assert len(patch.faces) < len(opponent.faces)
+    assert np.all(np.asarray(patch.vertices)[:, 0] < 10.0)
+    assert report["source_geometry_untouched"]
+    assert len(opponent.faces) == 24
