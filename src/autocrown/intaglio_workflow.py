@@ -17,6 +17,7 @@ from .frame import PatientFrame
 from .intaglio import build_engineering_cutter
 from .meshops import save_mesh
 from .support_owned_intaglio import extract_support_owned_candidate
+from .cervical_feasibility import audit_pre_stitch_feasibility
 
 
 ENGINEERING_PROFILE = {
@@ -30,6 +31,7 @@ ENGINEERING_PROFILE = {
 def generate_cutter_artifacts(
     support: trimesh.Trimesh, margin: np.ndarray, frame: PatientFrame,
     out_dir: Path, *, resolution_mm: float | None = None,
+    outer: trimesh.Trimesh | None = None,
 ) -> dict:
     """Fail closed for the cutter only, preserving all previous outer artifacts.
 
@@ -38,7 +40,7 @@ def generate_cutter_artifacts(
     """
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    for name in ("06_blockout.stl", "06_cutter.stl", "06_intaglio_candidate.stl", "06_intaglio_report.json"):
+    for name in ("06_blockout.stl", "06_cutter.stl", "06_intaglio_candidate.stl", "07_outer_supramarginal.stl", "06_intaglio_report.json"):
         (out_dir / name).unlink(missing_ok=True)
     report = {
         "status": "REVIEW_REQUIRED",
@@ -72,6 +74,32 @@ def generate_cutter_artifacts(
             if inner is not None:
                 save_mesh(inner, out_dir / "06_intaglio_candidate.stl")
                 report["artifacts"]["intaglio_candidate"] = "06_intaglio_candidate.stl"
+            if inner is not None and outer is not None:
+                # Read-only audit of the two clipped source surfaces, NOT seam
+                # generation. This must never deform a previously accepted outer.
+                try:
+                    outer_skin, feasibility = audit_pre_stitch_feasibility(
+                        outer, inner, margin, frame, transition_mm=0.35,
+                    )
+                    report["pre_stitch"] = feasibility
+                    if outer_skin is not None:
+                        save_mesh(outer_skin, out_dir / "07_outer_supramarginal.stl")
+                        report["artifacts"]["outer_supramarginal"] = "07_outer_supramarginal.stl"
+                except Exception as feasibility_exc:
+                    report["pre_stitch"] = {
+                        "status": "REVIEW_REQUIRED",
+                        "reason": "PRE_STITCH_AUDIT_EXCEPTION",
+                        "exception_type": type(feasibility_exc).__name__,
+                        "error": str(feasibility_exc)[:500],
+                        "clinical_final_ready": False,
+                    }
+                    (out_dir / "07_outer_supramarginal.stl").unlink(missing_ok=True)
+            else:
+                report["pre_stitch"] = {
+                    "status": "NOT_ASSESSED",
+                    "reason": "NO_SUPPORT_OWNED_INNER_OR_ACCEPTED_OUTER",
+                    "clinical_final_ready": False,
+                }
         except Exception as owner_exc:
             report["ownership"] = {
                 "status": "REVIEW_REQUIRED",
@@ -81,6 +109,11 @@ def generate_cutter_artifacts(
                 "clinical_final_ready": False,
             }
             (out_dir / "06_intaglio_candidate.stl").unlink(missing_ok=True)
+            report["pre_stitch"] = {
+                "status": "NOT_ASSESSED",
+                "reason": "INNER_OWNERSHIP_NOT_ESTABLISHED",
+                "clinical_final_ready": False,
+            }
     except Exception as exc:  # W3 is nonblocking: unexpected numerical failures also preserve the outer.
         report.update({
             "status": "REVIEW_REQUIRED",
