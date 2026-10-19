@@ -54,6 +54,11 @@ export default function Viewer({ assets, visible = {}, localization = null }) {
     assets?.support && { key:'support', url:assets.support, color:'#9a613f', opacity:1 },
     assets?.mesial && { key:'mesial', url:assets.mesial, color:'#40c057', opacity:0.8 },
     assets?.distal && { key:'distal', url:assets.distal, color:'#20c997', opacity:0.8 },
+    assets?.placed && { key:'placed', url:assets.placed, color:'#b58df3', opacity:1 },
+    assets?.height_fit && { key:'height_fit', url:assets.height_fit, color:'#74c0fc', opacity:1 },
+    assets?.mesial_fit && { key:'mesial_fit', url:assets.mesial_fit, color:'#69db7c', opacity:1 },
+    assets?.distal_fit && { key:'distal_fit', url:assets.distal_fit, color:'#ffa94d', opacity:1 },
+    assets?.occlusal && { key:'occlusal', url:assets.occlusal, color:'#f783ac', opacity:1 },
     assets?.outer && { key:'outer', url:assets.outer, color:'#f2c94c', opacity:1 },
   ].filter(Boolean)
 
