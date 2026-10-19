@@ -18,7 +18,7 @@ from .case_adapter import (
     work_dir,
 )
 
-app = FastAPI(title="AUTO_YangGuan", version="0.3.0")
+app = FastAPI(title="AUTO_YangGuan", version="0.4.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
@@ -146,6 +146,9 @@ def case_asset(case_id: str, asset_name: str):
         "distal_fit": out / "03_distal.stl",
         "occlusal": out / "04_occlusal.stl",
         "outer": out / "05_outer_candidate.stl",
+        "blockout": out / "06_blockout.stl",
+        "cutter": out / "06_cutter.stl",
+        "intaglio_report": out / "06_intaglio_report.json",
         "report": out / "report.json",
     })
     path = allowed.get(asset_name)
@@ -190,6 +193,9 @@ def _public_case(record: dict) -> dict:
             "distal_fit": f"/api/cases/{case_id}/asset/distal_fit" if (output / "03_distal.stl").exists() else None,
             "occlusal": f"/api/cases/{case_id}/asset/occlusal" if (output / "04_occlusal.stl").exists() else None,
             "outer": f"/api/cases/{case_id}/asset/outer" if generated else None,
+            "blockout": f"/api/cases/{case_id}/asset/blockout" if (output / "06_blockout.stl").exists() else None,
+            "cutter": f"/api/cases/{case_id}/asset/cutter" if (output / "06_cutter.stl").exists() else None,
+            "intaglio_report": f"/api/cases/{case_id}/asset/intaglio_report" if (output / "06_intaglio_report.json").exists() else None,
             "report": f"/api/cases/{case_id}/asset/report" if generated else None,
         },
         "localization": localization,
