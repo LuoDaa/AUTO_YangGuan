@@ -148,6 +148,7 @@ def case_asset(case_id: str, asset_name: str):
         "outer": out / "05_outer_candidate.stl",
         "blockout": out / "06_blockout.stl",
         "cutter": out / "06_cutter.stl",
+        "intaglio_candidate": out / "06_intaglio_candidate.stl",
         "intaglio_report": out / "06_intaglio_report.json",
         "report": out / "report.json",
     })
@@ -195,6 +196,7 @@ def _public_case(record: dict) -> dict:
             "outer": f"/api/cases/{case_id}/asset/outer" if generated else None,
             "blockout": f"/api/cases/{case_id}/asset/blockout" if (output / "06_blockout.stl").exists() else None,
             "cutter": f"/api/cases/{case_id}/asset/cutter" if (output / "06_cutter.stl").exists() else None,
+            "intaglio_candidate": f"/api/cases/{case_id}/asset/intaglio_candidate" if (output / "06_intaglio_candidate.stl").exists() else None,
             "intaglio_report": f"/api/cases/{case_id}/asset/intaglio_report" if (output / "06_intaglio_report.json").exists() else None,
             "report": f"/api/cases/{case_id}/asset/report" if generated else None,
         },
