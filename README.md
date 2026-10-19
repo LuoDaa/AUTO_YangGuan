@@ -33,15 +33,18 @@
    - `Y` = 牙弓外向 / 颊侧；
    - `X` = 右手牙弓切向；
    - 解剖近中侧由 FDI quadrant 映射为 `X` 的正/负方向，不再为了“近中=+X”把颊舌方向整体翻转；
-9. 完整天然牙模板先裁出 crown prior，再规范到同一 canonical frame；
-10. 模板仅做温和 X/Y 尺寸适配；
+9. 利用已注册的 32 牙位牙库/对颌方向规范模板长轴，再在 STL 三角面层面裁出有且只有一条完整颈环的 crown prior；若未证明环拓扑，明确进入复核而不声称成功；
+10. 模板仅做温和 X/Y 尺寸适配；利用邻牙的真实咬合高度进行有界冠高调整；
 11. 自动提取近中 / 远中参考 patch，做小范围 proximal grow / projection-back；
-12. 只处理明显对颌干涉；
-13. 输出阶段 STL、定位报告和工程 QC。
+12. 根据患者坐标系裁出目标冠附近的真实对颌 ROI，只在该区域进行局部咬合干涉修整；不对整个牙弓做 Boolean；
+13. 每个 HEIGHT/邻接/咬合阶段新增独立的顶点、颈缘冻结、三角翻面和变形幅度 gate；不能证明安全时退让或回滚到上一阶段；
+14. 输出阶段 STL、定位报告、每步 geometry_guard、来源绑定信息和工程 QC。
 
 ## 重要边界
 
-当前自动 Margin 和 insertion axis 是 **工程自动候选**，前端必须视觉复核；它们不是临床最终确认线。当前正式 intaglio / 制造级 cutter 尚未接入这个独立外冠 MVP。
+当前自动 Margin 和 insertion axis 是 **工程自动候选**，前端必须视觉复核；它们不是临床最终确认线。**现在生成接口要求先点击“我已在 3D 核对基台、Margin 与插入轴”**，且这个确认与本次输入 STL/模板和定位结果的摘要绑定，重新定位会撤销旧确认。
+
+**本仓库依旧是外冠工程 MVP**：CrownFlow 的正式 directional blockout、临床内冠 ownership、128 点 Margin collar 和最终制造 QC 尚未移植为可验证的完整牙冠链路。不能将 preview 或开放冠底当作可制造内冠，也不能将通过 CI 等同于临床验收。
 
 ## 最简单的本地测试
 
@@ -111,11 +114,13 @@ chmod +x run_dev.sh
 - **紫色 Z**：从 Margin 朝对颌，表示 insertion / occlusal direction；
 - **蓝色 Y**：应朝牙弓外侧 / 颊侧；红色 X 是右手牙弓切向，近中侧由 FDI 自动映射。
 
-定位可接受后再点：
+定位可接受后，先点 **“我已在 3D 核对基台、Margin 与插入轴”**；这一步保存针对当前定位和源文件的确认。然后再点：
 
 ```text
 2. 牙冠生成
 ```
+
+任何新的定位结果都会重置确认；源码和文件变化不会沿用旧定位进行生成。
 
 设计页可以开关：
 
@@ -125,7 +130,10 @@ chmod +x run_dev.sh
 - 近中 / 远中参考 patch；
 - Margin；
 - XYZ / 插入轴；
-- 黄色自动外冠。
+- 黄色自动外冠；
+- 初始摆位、冠高适配、近中、远中与咬合后各阶段 STL（默认关闭，勾选可单独比较）。
+
+设计页会显示每个形变阶段的 `geometry_guard` 状态与比例；`OUTER_REVIEW_REQUIRED` 表示能看工程候选，但**不代表通过制造级 QC**。
 
 并可导出 `Outer STL`、打开 `localization.json` 和 `report.json`。
 
@@ -155,7 +163,8 @@ templates/32牙位基础解剖模板库/32位牙列-分/FDI_11.stl ... FDI_48.st
 完整天然牙
 → 长轴与冠根方向分析
 → radius-vs-axis neck profile 找 cervical cut
-→ crown prior
+→ 三角级连续裁切 + 单一开口颈环/绕向/组件验证
+→ crown prior（不能证明时仍可留诊断候选，但必须 REVIEW_REQUIRED）
 → library arch radial 定颊侧
 → canonical frame
 ```
@@ -186,6 +195,7 @@ work/<case_id>/output/
 00_neighbor_mesial.stl      # 成功提取时
 00_neighbor_distal.stl      # 成功提取时
 01_placed.stl
+01_height_fit.stl
 02_mesial.stl               # 阶段实际输出时
 03_distal.stl               # 阶段实际输出时
 04_occlusal.stl             # 阶段实际输出时
@@ -210,7 +220,7 @@ npm install
 npm run build
 ```
 
-测试包含 synthetic geometry regression，并包含仓库真实 `基台测试2-牙位36` 的定位回归。
+测试包含 synthetic cervical/局部对颌/形变保护回归、完整牙库 FDI16/26/36/46 规范化回归，以及仓库真实 `基台测试2-牙位36` 的定位回归。CI 目前验证的是程序/几何约束，不代表整套真实病例的制造级内外冠验收。
 
 ## CLI
 
