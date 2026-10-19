@@ -65,18 +65,56 @@ def build_confirmed_frame(margin: np.ndarray, mesial, buccal, insertion) -> Pati
 
 
 def axial_height_from_margin(points: np.ndarray, margin: np.ndarray, frame: PatientFrame) -> np.ndarray:
-    """Approximate non-planar supramarginal height using nearest Margin XY sample.
+    """Continuous signed axial height over a confirmed non-planar Margin polyline.
 
-    The calculation is performed in the confirmed patient frame. For each point,
-    the nearest Margin sample in the X/Y plane owns the local Margin Z value.
-    Positive values are coronal / supramarginal along the insertion axis.
+    An STL Margin is a cyclic *polyline*, not independent nearest-point samples.
+    Nearest-vertex Z causes discontinuous cervical masks when the margin is
+    scalloped. Project to the nearest 2D Margin *segment* instead, interpolate
+    the two end-point axial heights, and preserve the confirmed 3D curve without
+    fitting or flattening it.
+
+    The field is used only to protect/edit existing surfaces. It does not invent
+    an interior cutting surface or replace a 3D cervical stitch.
     """
     p = frame.to_local(points)
     m = frame.to_local(margin)
-    tree = cKDTree(m[:, :2])
-    _, idx = tree.query(p[:, :2], k=1)
-    return p[:, 2] - m[np.asarray(idx, int), 2]
+    if m.ndim != 2 or m.shape[1] != 3 or len(m) < 3:
+        raise FrameError("Margin requires a valid 3D closed curve")
+    if not np.isfinite(m).all() or not np.isfinite(p).all():
+        raise FrameError("Margin and query points must be finite")
+    if np.linalg.norm(m[0] - m[-1]) <= 1e-9:
+        m = m[:-1]
+    if len(m) < 3:
+        raise FrameError("Margin closed curve has too few unique samples")
+    a = m
+    b = np.roll(m, -1, axis=0)
+    segment = b[:, :2] - a[:, :2]
+    length2 = np.einsum("ij,ij->i", segment, segment)
+    if np.any(length2 < 1e-16):
+        raise FrameError("Margin contains zero-length XY edges")
 
+    middle = 0.5 * (a[:, :2] + b[:, :2])
+    index = cKDTree(middle)
+    k = min(8, len(m))
+    _, candidates = index.query(p[:, :2], k=k)
+    candidates = np.asarray(candidates, int).reshape((len(p), k))
+    aa = a[candidates]
+    bb = b[candidates]
+    ee = bb[:, :, :2] - aa[:, :, :2]
+    xy = p[:, None, :2] - aa[:, :, :2]
+    t = np.clip(
+        np.einsum("ijk,ijk->ij", xy, ee)
+        / np.maximum(np.einsum("ijk,ijk->ij", ee, ee), 1e-16),
+        0.0, 1.0,
+    )
+    foot = aa[:, :, :2] + t[:, :, None] * ee
+    error2 = np.sum((p[:, None, :2] - foot) ** 2, axis=2)
+    choice = np.argmin(error2, axis=1)
+    row = np.arange(len(p))
+    z_boundary = aa[row, choice, 2] + t[row, choice] * (
+        bb[row, choice, 2] - aa[row, choice, 2]
+    )
+    return p[:, 2] - z_boundary
 
 def margin_local_extents(margin: np.ndarray, frame: PatientFrame) -> dict:
     local = frame.to_local(margin)
