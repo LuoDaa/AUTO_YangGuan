@@ -13,6 +13,7 @@ from .occlusion import adapt_occlusion
 from .placement import place_template
 from .qc import evaluate_outer
 from .geometry_guards import accept_anatomy_stage
+from .patient_constraints import extract_local_antagonist
 
 
 def _write_stage(mesh: trimesh.Trimesh, out_dir: Path | None, name: str) -> str | None:
@@ -234,21 +235,31 @@ def build_outer_crown(template: trimesh.Trimesh, margin: np.ndarray, frame: Pati
         report["stages"].append({"name": "DISTAL", "status": "SKIPPED", "reason": "NO_DISTAL_MESH"})
 
     if antagonist is not None:
-        before_step = current.copy()
-        current, r = adapt_occlusion(
-            current, antagonist, frame, margin,
-            cervical_lock_mm=cfg.quality.cervical_lock_mm,
-            config=cfg.occlusal,
-        )
-        current, guard = accept_anatomy_stage(
-            before_step, current, margin, frame, stage="OCCLUSAL",
-            cervical_lock_mm=cfg.quality.cervical_lock_mm,
-            max_stage_move_mm=cfg.occlusal.max_relief_mm + 0.02,
-        )
-        report["stages"].append({"name": "OCCLUSAL", **r, "geometry_guard": guard})
-        p = _write_stage(current, out_path, "04_occlusal")
-        if p:
-            report["artifacts"]["occlusal"] = p
+        actual_patch, roi_report = extract_local_antagonist(antagonist, current, frame)
+        if actual_patch is None:
+            report["stages"].append({
+                "name": "OCCLUSAL", "status": "NOT_ASSESSED",
+                "reason": roi_report.get("reason"), "reference_roi": roi_report,
+            })
+        else:
+            before_step = current.copy()
+            current, r = adapt_occlusion(
+                current, actual_patch, frame, margin,
+                cervical_lock_mm=cfg.quality.cervical_lock_mm,
+                config=cfg.occlusal,
+            )
+            current, guard = accept_anatomy_stage(
+                before_step, current, margin, frame, stage="OCCLUSAL",
+                cervical_lock_mm=cfg.quality.cervical_lock_mm,
+                max_stage_move_mm=cfg.occlusal.max_relief_mm + 0.02,
+            )
+            report["stages"].append({
+                "name": "OCCLUSAL", **r, "reference_roi": roi_report,
+                "geometry_guard": guard,
+            })
+            p = _write_stage(current, out_path, "04_occlusal")
+            if p:
+                report["artifacts"]["occlusal"] = p
     else:
         report["stages"].append({"name": "OCCLUSAL", "status": "SKIPPED", "reason": "NO_ANTAGONIST_MESH"})
 
@@ -257,6 +268,7 @@ def build_outer_crown(template: trimesh.Trimesh, margin: np.ndarray, frame: Pati
     rejected_stages = [
         x["name"] for x in report["stages"]
         if (x.get("geometry_guard") or {}).get("status") in {"REJECTED", "ACCEPTED_BACKOFF"}
+        or (x["name"] == "OCCLUSAL" and x.get("status") == "NOT_ASSESSED" and antagonist is not None)
     ]
     report["stage_guard_reviews"] = rejected_stages
     report["status"] = (
