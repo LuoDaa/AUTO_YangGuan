@@ -12,6 +12,7 @@ from .meshops import save_mesh
 from .occlusion import adapt_occlusion
 from .placement import place_template
 from .qc import evaluate_outer
+from .geometry_guards import accept_anatomy_stage
 
 
 def _write_stage(mesh: trimesh.Trimesh, out_dir: Path | None, name: str) -> str | None:
@@ -178,7 +179,11 @@ def build_outer_crown(template: trimesh.Trimesh, margin: np.ndarray, frame: Pati
         distal=distal,
         cervical_lock_mm=cfg.quality.cervical_lock_mm,
     )
-    report["stages"].append({"name": "HEIGHT", **height_report})
+    current, height_gate = accept_anatomy_stage(
+        placed, current, margin, frame, stage="HEIGHT",
+        cervical_lock_mm=cfg.quality.cervical_lock_mm, max_stage_move_mm=2.10,
+    )
+    report["stages"].append({"name": "HEIGHT", **height_report, "geometry_guard": height_gate})
     p = _write_stage(current, out_path, "01_height_fit")
     if p:
         report["artifacts"]["height_fit"] = p
@@ -189,13 +194,19 @@ def build_outer_crown(template: trimesh.Trimesh, margin: np.ndarray, frame: Pati
     reference = current.copy()
 
     if mesial is not None:
+        before_step = current.copy()
         current, r = adapt_proximal(
             current, mesial, frame, margin, "mesial",
             cervical_lock_mm=cfg.quality.cervical_lock_mm,
             config=cfg.proximal,
             mesial_sign=mesial_sign,
         )
-        report["stages"].append({"name": "MESIAL", **r})
+        current, guard = accept_anatomy_stage(
+            before_step, current, margin, frame, stage="MESIAL",
+            cervical_lock_mm=cfg.quality.cervical_lock_mm,
+            max_stage_move_mm=max(cfg.proximal.max_growth_mm, cfg.proximal.max_relief_mm) + 0.02,
+        )
+        report["stages"].append({"name": "MESIAL", **r, "geometry_guard": guard})
         p = _write_stage(current, out_path, "02_mesial")
         if p:
             report["artifacts"]["mesial"] = p
@@ -203,13 +214,19 @@ def build_outer_crown(template: trimesh.Trimesh, margin: np.ndarray, frame: Pati
         report["stages"].append({"name": "MESIAL", "status": "SKIPPED", "reason": "NO_MESIAL_MESH"})
 
     if distal is not None:
+        before_step = current.copy()
         current, r = adapt_proximal(
             current, distal, frame, margin, "distal",
             cervical_lock_mm=cfg.quality.cervical_lock_mm,
             config=cfg.proximal,
             mesial_sign=mesial_sign,
         )
-        report["stages"].append({"name": "DISTAL", **r})
+        current, guard = accept_anatomy_stage(
+            before_step, current, margin, frame, stage="DISTAL",
+            cervical_lock_mm=cfg.quality.cervical_lock_mm,
+            max_stage_move_mm=max(cfg.proximal.max_growth_mm, cfg.proximal.max_relief_mm) + 0.02,
+        )
+        report["stages"].append({"name": "DISTAL", **r, "geometry_guard": guard})
         p = _write_stage(current, out_path, "03_distal")
         if p:
             report["artifacts"]["distal"] = p
@@ -217,12 +234,18 @@ def build_outer_crown(template: trimesh.Trimesh, margin: np.ndarray, frame: Pati
         report["stages"].append({"name": "DISTAL", "status": "SKIPPED", "reason": "NO_DISTAL_MESH"})
 
     if antagonist is not None:
+        before_step = current.copy()
         current, r = adapt_occlusion(
             current, antagonist, frame, margin,
             cervical_lock_mm=cfg.quality.cervical_lock_mm,
             config=cfg.occlusal,
         )
-        report["stages"].append({"name": "OCCLUSAL", **r})
+        current, guard = accept_anatomy_stage(
+            before_step, current, margin, frame, stage="OCCLUSAL",
+            cervical_lock_mm=cfg.quality.cervical_lock_mm,
+            max_stage_move_mm=cfg.occlusal.max_relief_mm + 0.02,
+        )
+        report["stages"].append({"name": "OCCLUSAL", **r, "geometry_guard": guard})
         p = _write_stage(current, out_path, "04_occlusal")
         if p:
             report["artifacts"]["occlusal"] = p
@@ -231,7 +254,16 @@ def build_outer_crown(template: trimesh.Trimesh, margin: np.ndarray, frame: Pati
 
     qc = evaluate_outer(reference, current, cfg.quality)
     report["outer_qc"] = qc
-    report["status"] = "OUTER_CANDIDATE_READY" if qc["status"] == "PASS_ENGINEERING" else "OUTER_REVIEW_REQUIRED"
+    rejected_stages = [
+        x["name"] for x in report["stages"]
+        if (x.get("geometry_guard") or {}).get("status") in {"REJECTED", "ACCEPTED_BACKOFF"}
+    ]
+    report["stage_guard_reviews"] = rejected_stages
+    report["status"] = (
+        "OUTER_CANDIDATE_READY"
+        if qc["status"] == "PASS_ENGINEERING" and not rejected_stages
+        else "OUTER_REVIEW_REQUIRED"
+    )
 
     p = _write_stage(current, out_path, "05_outer_candidate")
     if p:
