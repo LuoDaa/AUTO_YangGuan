@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import hashlib
 import json
 import re
 import uuid
@@ -95,7 +96,9 @@ def _save_record(record: dict) -> None:
 
 def create_case_from_testdata(name: str) -> dict:
     folder = testdata_dir() / name
-    if not folder.exists():
+    if name not in {row["name"] for row in list_test_cases()}:
+        raise FileNotFoundError("unknown test case")
+    if not folder.is_dir():
         raise FileNotFoundError(name)
     match = re.search(r"牙位\s*(\d{2})", name)
     if not match:
@@ -130,8 +133,12 @@ def save_uploaded_case(
     case_id = uuid.uuid4().hex[:12]
     folder = work_dir() / case_id
     folder.mkdir(parents=True, exist_ok=True)
-    upper = folder / (Path(upper_name).name or "upper.stl")
-    lower = folder / (Path(lower_name).name or "lower.stl")
+    # Separate fixed asset names: two uploads with the same basename must not
+    # overwrite one another and change the registered bite geometry.
+    upper = folder / "upper.stl"
+    lower = folder / "lower.stl"
+    if not upper_bytes or not lower_bytes:
+        raise ValueError("both jaw STL files must be non-empty")
     upper.write_bytes(upper_bytes)
     lower.write_bytes(lower_bytes)
     target_upper = str(fdi)[0] in {"1", "2"}
@@ -154,6 +161,8 @@ def save_uploaded_case(
 
 
 def load_case(case_id: str) -> dict:
+    if not re.fullmatch(r"[0-9a-f]{12}", str(case_id)):
+        raise FileNotFoundError("invalid case identifier")
     path = work_dir() / case_id / "case.json"
     if not path.exists():
         raise FileNotFoundError(case_id)
@@ -190,6 +199,46 @@ def mesial_sign_for_fdi(fdi: str) -> float:
     return 1.0 if quadrant in {1, 3} else -1.0
 
 
+def _source_signature(record: dict) -> str:
+    """Bind generated geometry to the exact bytes of both scans and template."""
+    digest = hashlib.sha256()
+    digest.update(str(record["fdi"]).encode("ascii"))
+    for key in ("target_arch", "opponent_arch", "template"):
+        path = Path(record[key])
+        if not path.is_file():
+            raise FileNotFoundError(f"case input missing: {key}")
+        digest.update(key.encode("ascii"))
+        with path.open("rb") as stream:
+            for block in iter(lambda: stream.read(4 * 1024 * 1024), b""):
+                digest.update(block)
+    return digest.hexdigest()
+
+
+def _localization_signature(input_digest: str, fdi: str, report: dict) -> str:
+    data = {
+        "input_digest": input_digest,
+        "fdi": str(fdi),
+        "margin_points": report["margin_points"],
+        "frame": report["frame"],
+    }
+    return hashlib.sha256(
+        json.dumps(data, sort_keys=True, ensure_ascii=False).encode("utf-8")
+    ).hexdigest()
+
+
+def acknowledge_localization(case_id: str) -> dict:
+    """Persist a visible operator acknowledgment bound to immutable geometry."""
+    record = load_case(case_id)
+    token = record.get("localization_token")
+    if not token or not record.get("localization"):
+        raise ValueError("localization must be completed before acknowledgment")
+    if _source_signature(record) != record.get("input_signature"):
+        raise ValueError("input STL/template changed after localization; localize again")
+    record["acknowledged_localization_token"] = token
+    _save_record(record)
+    return record
+
+
 def localize_case(case_id: str) -> dict:
     record = load_case(case_id)
     out = work_dir() / case_id / "output"
@@ -219,6 +268,13 @@ def localize_case(case_id: str) -> dict:
     )
 
     record["localization"] = report
+    source_signature = _source_signature(record)
+    record["input_signature"] = source_signature
+    record["localization_token"] = _localization_signature(
+        source_signature, record["fdi"], report
+    )
+    # Never carry a prior visual acknowledgment across a fresh localization.
+    record.pop("acknowledged_localization_token", None)
     record["localization_assets"] = {
         "support": str((out / "00_support_component.stl").resolve()),
         "target_component": str((out / "00_target_jaw_component.stl").resolve()),
@@ -294,10 +350,18 @@ def _automatic_neighbor_patch(
     }
 
 
-def generate_outer_for_case(case_id: str) -> dict:
+def generate_outer_for_case(case_id: str, *, require_acknowledgement: bool = False) -> dict:
     record = load_case(case_id)
     if not record.get("localization"):
         record = localize_case(case_id)
+    if _source_signature(record) != record.get("input_signature"):
+        raise ValueError("source geometry changed after localization; relocalize")
+    acknowledged = bool(
+        record.get("localization_token")
+        and record.get("localization_token") == record.get("acknowledged_localization_token")
+    )
+    if require_acknowledgement and not acknowledged:
+        raise ValueError("请先在 3D 中核对基台、Margin 和 XYZ，再确认定位")
 
     out = work_dir() / case_id / "output"
     out.mkdir(parents=True, exist_ok=True)
@@ -340,6 +404,29 @@ def generate_outer_for_case(case_id: str) -> dict:
         "mesial": mesial_report,
         "distal": distal_report,
     }
+    neighbor_review = [
+        side for side, row in (("mesial", mesial_report), ("distal", distal_report))
+        if row.get("status") != "READY"
+    ]
+    caution = []
+    if localization.get("status") != "READY":
+        caution.append("LOCALIZATION_REVIEW_REQUIRED")
+    if not template_report.get("clinical_cervical_valid", False):
+        caution.append("TEMPLATE_CERVICAL_SOURCE_NOT_PROVEN")
+    if neighbor_review:
+        caution.append("NEIGHBOR_REFERENCE_UNVERIFIED:" + ",".join(neighbor_review))
+    if report["status"] != "OUTER_CANDIDATE_READY":
+        caution.append("OUTER_MORPHOLOGY_QC_REVIEW_REQUIRED")
+    report["readiness"] = {
+        "status": "REVIEW_REQUIRED" if caution else "PASS_ENGINEERING",
+        "reasons": caution,
+        "localization_token": record.get("localization_token"),
+        "localization_acknowledged": acknowledged,
+        "template_cervical_valid": bool(template_report.get("clinical_cervical_valid")),
+        "clinical_manufacturing_approved": False,
+    }
+    if caution:
+        report["status"] = "OUTER_REVIEW_REQUIRED"
     report["limitations"] = [
         "AUTO_MARGIN_AND_AXIS_ARE_ENGINEERING_CANDIDATES_REQUIRE_VISUAL_REVIEW",
         "FINAL_INTAGLIO_NOT_IN_THIS_OUTER_MVP",
