@@ -60,6 +60,8 @@ export default function Viewer({ assets, visible = {}, localization = null }) {
     assets?.distal_fit && { key:'distal_fit', url:assets.distal_fit, color:'#ffa94d', opacity:1 },
     assets?.occlusal && { key:'occlusal', url:assets.occlusal, color:'#f783ac', opacity:1 },
     assets?.outer && { key:'outer', url:assets.outer, color:'#f2c94c', opacity:1 },
+    assets?.blockout && { key:'blockout', url:assets.blockout, color:'#37bdf8', opacity:0.38 },
+    assets?.cutter && { key:'cutter', url:assets.cutter, color:'#62d6c4', opacity:0.45 },
   ].filter(Boolean)
 
   return (
