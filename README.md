@@ -38,13 +38,14 @@
 11. 自动提取近中 / 远中参考 patch，做小范围 proximal grow / projection-back；
 12. 根据患者坐标系裁出目标冠附近的真实对颌 ROI，只在该区域进行局部咬合干涉修整；不对整个牙弓做 Boolean；
 13. 每个 HEIGHT/邻接/咬合阶段新增独立的顶点、颈缘冻结、三角翻面和变形幅度 gate；不能证明安全时退让或回滚到上一阶段；
-14. 输出阶段 STL、定位报告、每步 geometry_guard、来源绑定信息和工程 QC。
+14. 生成定向 blockout 和 variable-gap 工程 cutter（单独产物，错误不影响外冠）；
+15. 输出阶段 STL、定位报告、每步 geometry_guard、来源绑定信息和工程 QC。
 
 ## 重要边界
 
 当前自动 Margin 和 insertion axis 是 **工程自动候选**，前端必须视觉复核；它们不是临床最终确认线。**现在生成接口要求先点击“我已在 3D 核对基台、Margin 与插入轴”**，且这个确认与本次输入 STL/模板和定位结果的摘要绑定，重新定位会撤销旧确认。
 
-**本仓库依旧是外冠工程 MVP**：CrownFlow 的正式 directional blockout、临床内冠 ownership、128 点 Margin collar 和最终制造 QC 尚未移植为可验证的完整牙冠链路。不能将 preview 或开放冠底当作可制造内冠，也不能将通过 CI 等同于临床验收。
+**本仓库仍是工程测试平台**：已从 CrownFlow 移植 insertion-axis directional blockout + variable cement-gap 核心，可以独立生成封闭的 engineering cutter；但 PreparedSupport clinical ownership、128 点共享 Margin cervical collar、最终内外冠封闭组装与制造 QC 仍未实现完整的临床可验证链路。Cutter 不能称作 final intaglio，不能将 preview 或开放冠底当作可制造内冠，也不能将通过 CI 等同于临床验收。
 
 ## 最简单的本地测试
 
@@ -131,11 +132,12 @@ chmod +x run_dev.sh
 - Margin；
 - XYZ / 插入轴；
 - 黄色自动外冠；
+- 青色工程 blockout 与 cutter（均默认关闭，非最终内冠）；
 - 初始摆位、冠高适配、近中、远中与咬合后各阶段 STL（默认关闭，勾选可单独比较）。
 
 设计页会显示每个形变阶段的 `geometry_guard` 状态与比例；`OUTER_REVIEW_REQUIRED` 表示能看工程候选，但**不代表通过制造级 QC**。
 
-并可导出 `Outer STL`、打开 `localization.json` 和 `report.json`。
+并可导出 `Outer STL`、打开 `localization.json` 和 `report.json`。工程 cutter 构建成功时还可导出 `06_cutter.stl` 并查看 `06_intaglio_report.json`，且这些文件不代表最终冠。
 
 ### 方式 B：上传自己的上下颌
 
@@ -200,6 +202,9 @@ work/<case_id>/output/
 03_distal.stl               # 阶段实际输出时
 04_occlusal.stl             # 阶段实际输出时
 05_outer_candidate.stl
+06_blockout.stl             # 工程 blockout 成功时
+06_cutter.stl               # 工程 variable-gap cutter 成功时
+06_intaglio_report.json     # W3 独立阶段报告；失败也会留存
 report.json
 ```
 
@@ -239,13 +244,15 @@ autocrown outer \
 
 ## Intaglio 状态
 
-`autocrown intaglio-preview` 目前仍是诊断预览，不是制造级 cutter。正式内冠后续需要独立完成：
+`autocrown intaglio-preview` 仍是旧的 support-normal-offset 诊断预览；真实病例的 `generate` 现在新增一条**独立的 CrownFlow-derived W3 工程路径**：
 
-1. insertion-axis directional blockout；
-2. cement-gap field；
-3. clinical face ownership；
-4. support coverage validation；
-5. Margin-owned clipping；
-6. deterministic cervical collar / final assembly。
+1. 使用已定位基台和 insertion axis 构造 directional shadow/height-field blockout；
+2. 根据参数构造 variable cement-gap cutter，默认 `cement_gap_mm=0.06`、`cement_gap_start_mm=0.10`、5轴工程 profile；未输入 top gap 不猜值；
+3. 只在 blockout 和 cutter 通过单连通、水密及绕向检查时导出 STL；
+4. 若几何失败，只记录 `06_intaglio_report.json` 并删除旧 cutter；**已生成外冠不受影响**。
+
+仍须实现并验证：临床 support ownership / gap regions、正式 Margin-owned clipping、双表面无穿插、128 点共享 cervical collar、最终 watertight crown、真实厚度与就位 QC。**工程 cutter 不是 final crown。**
+
+移植源：`CrownFlow/backend/app/geometry/intaglio.py`，在 `src/autocrown/crownflow_intaglio_core.py` 中保留 A/B 两段核心；仅适配独立仓库的 insertion-axis 工具和参数入口。
 
 当前阶段先把 **“基台位置正确 → 插入轴正确 → 模板方向正确 → 保守外冠稳定”** 这条链跑通。
