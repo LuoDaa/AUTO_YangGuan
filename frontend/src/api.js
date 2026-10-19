@@ -28,5 +28,6 @@ export const api = {
   },
   case: (id) => request(`/api/cases/${id}`),
   localize: (id) => request(`/api/cases/${id}/localize`, {method:'POST'}),
+  acknowledgeLocalization: (id) => request(`/api/cases/${id}/acknowledge-localization`, {method:'POST'}),
   generate: (id) => request(`/api/cases/${id}/generate`, {method:'POST'}),
 }
