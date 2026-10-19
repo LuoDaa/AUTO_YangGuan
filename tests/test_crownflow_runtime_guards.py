@@ -13,9 +13,13 @@ from autocrown.template_cervical import _boundary_loops, extract_clean_crown_sur
 
 
 def _frame_and_margin():
-    margin = np.array([
+    corners = np.array([
         [-2.0, -2.0, 0.0], [2.0, -2.0, 2.0],
         [2.0, 2.0, 1.0], [-2.0, 2.0, -0.5],
+    ])
+    margin = np.vstack([
+        corners[i] + t * (corners[(i + 1) % 4] - corners[i])
+        for i in range(4) for t in np.linspace(0, 1, 4, endpoint=False)
     ])
     frame = build_confirmed_frame(margin, [1, 0, 0], [0, 1, 0], [0, 0, 1])
     return frame, margin
@@ -76,7 +80,7 @@ def test_clean_cervical_source_has_single_planar_open_loop():
     result, report = extract_clean_crown_surface(
         mesh, np.array([0.0, 0.0, 1.0]), np.zeros(3), 0.0
     )
-    assert report["status"] == "PASS_ENGINEERING"
+    assert report["status"] == "PASS_ENGINEERING", report
     assert result is not None
     rings = _boundary_loops(result)
     assert rings is not None and len(rings) == 1
