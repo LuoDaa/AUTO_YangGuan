@@ -300,55 +300,16 @@ def _automatic_neighbor_patch(
     *,
     mesial_sign: float,
 ) -> tuple[trimesh.Trimesh | None, dict]:
-    centers = np.asarray(jaw.triangles_center, float)
-    local = frame.to_local(centers)
-    margin_local = frame.to_local(np.asarray(margin, float))
-    half_x = max(float(np.ptp(margin_local[:, 0])) / 2.0, 0.8)
-    half_y = max(float(np.ptp(margin_local[:, 1])) / 2.0, 0.8)
-    z_hi = float(np.quantile(margin_local[:, 2], 0.90))
-    anatomical_sign = float(mesial_sign) if side == "mesial" else -float(mesial_sign)
-    side_x = anatomical_sign * local[:, 0]
-    presence = (
-        (side_x > half_x + 0.12)
-        & (side_x < half_x + 11.0)
-        & (np.abs(local[:, 1]) < half_y + 6.5)
-        & (local[:, 2] > z_hi - 0.8)
-        & (local[:, 2] < z_hi + 9.5)
+    """CrownFlow V5-style contiguous coronal core/halo on the real jaw.
+
+    The former nearest-connected-component shortcut is intentionally retired.
+    Unknown or ambiguous neighbour references stay REVIEW_REQUIRED rather than
+    becoming fabricated contacts or silently accepted absent teeth.
+    """
+    from .crownflow_neighbor_patch import extract_neighbor_patch_v5
+    return extract_neighbor_patch_v5(
+        jaw, frame, margin, side, mesial_sign=mesial_sign
     )
-    candidate_ids = np.flatnonzero(presence)
-    if len(candidate_ids) < 8:
-        return None, {
-            "status": "ABSENT_OR_UNRESOLVED",
-            "side": side,
-            "candidate_faces": int(len(candidate_ids)),
-            "mesial_sign": float(mesial_sign),
-        }
-
-    nearest_x = float(np.quantile(side_x[candidate_ids], 0.06))
-    bounded = presence & (side_x <= nearest_x + 4.5)
-    ids = np.flatnonzero(bounded)
-    if len(ids) < 8:
-        return None, {"status": "UNRESOLVED", "side": side, "candidate_faces": int(len(ids))}
-
-    subset = jaw.submesh([ids], append=True, repair=False)
-    parts = list(subset.split(only_watertight=False))
-    if parts:
-        # Prefer the connected patch nearest the expected proximal side of Margin.
-        target = frame.origin + frame.x * anatomical_sign * (half_x + 1.5)
-        parts.sort(key=lambda part: float(np.min(np.linalg.norm(np.asarray(part.vertices) - target, axis=1))))
-        subset = parts[0]
-    if len(subset.faces) < 8:
-        return None, {"status": "UNRESOLVED", "side": side, "candidate_faces": int(len(ids))}
-
-    return subset, {
-        "status": "READY",
-        "method": "PATIENT_FRAME_FDI_SIDE_CONNECTED_PATCH_V2",
-        "side": side,
-        "mesial_sign": float(mesial_sign),
-        "faces": int(len(subset.faces)),
-        "nearest_side_coordinate_mm": nearest_x,
-    }
-
 
 def generate_outer_for_case(case_id: str, *, require_acknowledgement: bool = False) -> dict:
     record = load_case(case_id)
