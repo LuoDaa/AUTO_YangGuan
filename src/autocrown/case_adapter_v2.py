@@ -348,7 +348,7 @@ def generate_outer_for_case(case_id: str, *, require_acknowledgement: bool = Fal
     if distal is not None:
         save_mesh(distal, out / "00_neighbor_distal.stl")
 
-    _, report = build_outer_crown(
+    outer_crown, report = build_outer_crown(
         template,
         margin,
         frame,
@@ -370,7 +370,7 @@ def generate_outer_for_case(case_id: str, *, require_acknowledgement: bool = Fal
     from .intaglio_workflow import generate_cutter_artifacts
     support_for_cutter = load_mesh(record["localization_assets"]["support"])
     intaglio_stage = generate_cutter_artifacts(
-        support_for_cutter, margin, frame, out,
+        support_for_cutter, margin, frame, out, outer=outer_crown,
     )
     report["intaglio_engineering"] = intaglio_stage
     neighbor_review = [
