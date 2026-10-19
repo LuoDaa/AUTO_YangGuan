@@ -59,7 +59,7 @@ def generate_cutter_artifacts(
             "blockout": "06_blockout.stl",
             "cutter": "06_cutter.stl",
         }
-    except (ValueError, RuntimeError, IndexError, OverflowError, MemoryError) as exc:
+    except Exception as exc:  # W3 is nonblocking: unexpected numerical failures also preserve the outer.
         report.update({
             "status": "REVIEW_REQUIRED",
             "reason": type(exc).__name__,
